@@ -184,8 +184,8 @@
     .day-cell-btn.blocked-IMP { background: #f3e8ff; border-color: #a855f7; color: #581c87; font-weight: 700; }
 
     .cal-cell {
-      min-height: 112px;
-      border: 1px solid rgba(15, 23, 42, 0.14);
+      min-height: 116px;
+      border: 1px solid rgba(15, 23, 42, 0.16);
       border-radius: 12px;
       padding: 8px;
       display: flex;
@@ -209,14 +209,14 @@
       font-size: 0.64rem;
       font-weight: 700;
       color: #0f172a;
-      background: rgba(255, 255, 255, 0.88);
+      background: rgba(255, 255, 255, 0.9);
       border-radius: 999px;
       padding: 1px 6px;
       margin-bottom: 4px;
     }
     .guard-box {
       text-align: center;
-      background: rgba(255, 255, 255, 0.92);
+      background: rgba(255, 255, 255, 0.94);
       border-radius: 8px;
       padding: 6px 4px;
       box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
@@ -357,14 +357,14 @@
       <div>
         <label>Viernes habituales:</label>
         <select id="fridayRule">
-          <option value="avoid">Evitar viernes</option>
           <option value="allow">Disponible los viernes</option>
+          <option value="avoid">Evitar viernes</option>
         </select>
       </div>
     </div>
 
     <p style="margin: 14px 0 6px; font-size: 0.9rem;">
-      Calendario del período: tocá los días que <strong>NO puede hacer guardia</strong> según el motivo seleccionado:
+      Calendario del período: tocá los días que <strong>NO puede hacer guardia</strong> según el motivo seleccionado (opcional):
     </p>
     <div id="resident-calendar-grid"></div>
 
@@ -386,7 +386,7 @@
   <div class="card" id="step-result" style="display:none;">
     <div class="row" style="justify-content: space-between;">
       <h2 id="result-title">Cronograma Final</h2>
-      <button type="button" class="success" onclick="downloadScheduleImage()">📥 Descargar Imagen (PNG)</button>
+      <button type="button" class="success" id="btnDownloadPng" onclick="downloadScheduleImage()">📥 Descargar Imagen (PNG)</button>
     </div>
     <div id="solver-feedback"></div>
     <div id="calendar-output"></div>
@@ -667,6 +667,10 @@
       alert('Cargá los 5 residentes para calcular el esquema.');
       return;
     }
+    if (!periodDays || periodDays.length === 0) {
+      alert('Primero confirmá el período.');
+      return;
+    }
 
     const indexedDays = periodDays.map((d, i) => ({ ...d, idx: i }));
     const holidays = indexedDays.filter(d => d.isHoliday);
@@ -677,21 +681,21 @@
     const orderedDays = [...holidays, ...weekends, ...monToThu, ...fridays];
     const top20 = orderedDays.slice(0, 20);
 
-    let solved = solveExact40(top20, 4, 4, 4, 4, 600000);
+    let solved = solveExact40(top20, 4, 4, 4, 4, 800000);
     if (solved) {
       lastSolution = { ...solved, mode: 'ideal' };
       renderResult(lastSolution);
       return;
     }
 
-    solved = solveExact40(top20, 4, 5, 0, 4, 700000);
+    solved = solveExact40(top20, 4, 5, 0, 4, 900000);
     if (solved) {
       lastSolution = { ...solved, mode: 'exception' };
       renderResult(lastSolution);
       return;
     }
 
-    solved = solveExact40(orderedDays, 4, 5, 0, 3, 800000);
+    solved = solveExact40(orderedDays, 4, 5, 0, 3, 1000000);
     if (solved) {
       lastSolution = { ...solved, mode: 'exception' };
       renderResult(lastSolution);
@@ -807,11 +811,13 @@
     const feedback = document.getElementById('solver-feedback');
     const calOut = document.getElementById('calendar-output');
     const sumOut = document.getElementById('summary-table');
+    const dlBtn = document.getElementById('btnDownloadPng');
 
     stepRes.style.display = 'block';
     stepRes.scrollIntoView({ behavior: 'smooth' });
 
     if (!solution) {
+      dlBtn.disabled = true;
       feedback.innerHTML = `<div class="alert alert-error">
         ⚠️ No se pudo armar una combinación válida con las restricciones actuales. Revisá bloqueos coincidentes, feriados o habilitá viernes.
       </div>`;
@@ -820,6 +826,7 @@
       return;
     }
 
+    dlBtn.disabled = false;
     feedback.innerHTML = solution.mode === 'ideal'
       ? `<div class="alert alert-success">✅ Esquema óptimo: 4 guardias de semana + 4 de fin de semana/feriado para cada residente, con descanso ≥ 48 hs.</div>`
       : `<div class="alert alert-warn">⚠️ Esquema ajustado por restricciones: se cubrieron los 20 días respetando descansos y bloqueos, con cupos completados en días de semana.</div>`;
@@ -836,7 +843,7 @@
       const assigned = solution.mapByDate[day.dateStr];
       const tag = day.isHoliday ? 'FERIADO' : (day.isWeekend ? 'FINDE' : '');
 
-      if (assigned) {
+      if (assigned && assigned.DAY && assigned.NIGHT) {
         const dRes = assigned.DAY;
         const nRes = assigned.NIGHT;
         const samePerson = dRes.name === nRes.name;
@@ -891,171 +898,15 @@
     sumOut.innerHTML = tbl;
   }
 
-  function downloadScheduleImage() {
-    if (!lastSolution) {
-      alert('Primero calculá el esquema.');
-      return;
-    }
-
-    const W = 1600;
-    const cols = 7;
-    const firstDow = (periodDays[0].dayOfWeek + 6) % 7;
-    const totalCells = firstDow + periodDays.length;
-    const rows = Math.ceil(totalCells / cols);
-
-    const marginX = 50;
-    const headerH = 145;
-    const colGap = 12;
-    const rowGap = 12;
-    const cellW = Math.floor((W - marginX * 2 - colGap * (cols - 1)) / cols);
-    const cellH = 128;
-    const gridTop = headerH + 38;
-    const gridH = rows * (cellH + rowGap);
-    const summaryTop = gridTop + gridH + 24;
-    const summaryH = 225;
-    const H = summaryTop + summaryH + 35;
-
-    const canvas = document.createElement('canvas');
-    canvas.width = W;
-    canvas.height = H;
-    const ctx = canvas.getContext('2d');
-
-    ctx.fillStyle = '#f8fafc';
-    ctx.fillRect(0, 0, W, H);
-
-    ctx.fillStyle = '#0f172a';
-    ctx.font = '800 34px system-ui, -apple-system, sans-serif';
-    ctx.fillText('ESQUEMA DE GUARDIAS — RESIDENTES', marginX, 54);
-
-    ctx.fillStyle = '#0284c7';
-    ctx.font = '700 22px system-ui, -apple-system, sans-serif';
-    ctx.fillText('Hospital Provincial de Neuquén', marginX, 88);
-
-    const firstD = periodDays[0].dateObj;
-    const lastD = periodDays[periodDays.length - 1].dateObj;
-    const rangeLabel = `Período: ${firstD.getDate()} de ${MESES_FULL[firstD.getMonth()]} al ${lastD.getDate()} de ${MESES_FULL[lastD.getMonth()]} ${lastD.getFullYear()}`;
-    ctx.fillStyle = '#475569';
-    ctx.font = '600 18px system-ui, -apple-system, sans-serif';
-    ctx.fillText(rangeLabel, marginX, 118);
-
-    let legX = W - marginX;
-    ctx.font = '700 15px system-ui, -apple-system, sans-serif';
-    [...residents].reverse().forEach(r => {
-      const textW = ctx.measureText(r.name).width;
-      legX -= (textW + 26);
-      ctx.fillStyle = r.color;
-      ctx.beginPath();
-      ctx.arc(legX, 52, 8, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = '#0f172a';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-
-      ctx.fillStyle = '#0f172a';
-      ctx.fillText(r.name, legX + 14, 57);
-      legX -= 18;
-    });
-
-    const dayLabels = ['LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO', 'DOMINGO'];
-    dayLabels.forEach((lbl, i) => {
-      const x = marginX + i * (cellW + colGap);
-      roundRect(ctx, x, headerH, cellW, 28, 6, '#e2e8f0', null);
-      ctx.fillStyle = '#334155';
-      ctx.font = '700 13px system-ui, -apple-system, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(lbl, x + cellW / 2, headerH + 19);
-      ctx.textAlign = 'left';
-    });
-
-    periodDays.forEach((day, idx) => {
-      const pos = firstDow + idx;
-      const rIdx = Math.floor(pos / cols);
-      const cIdx = pos % cols;
-      const x = marginX + cIdx * (cellW + colGap);
-      const y = gridTop + rIdx * (cellH + rowGap);
-
-      const assigned = lastSolution.mapByDate[day.dateStr];
-      if (assigned) {
-        const dRes = assigned.DAY;
-        const nRes = assigned.NIGHT;
-
-        if (dRes.name === nRes.name) {
-          roundRect(ctx, x, y, cellW, cellH, 12, dRes.color, 'rgba(15,23,42,0.2)');
-        } else {
-          const grad = ctx.createLinearGradient(x, y, x + cellW, y + cellH);
-          grad.addColorStop(0, dRes.color);
-          grad.addColorStop(0.47, dRes.color);
-          grad.addColorStop(0.53, nRes.color);
-          grad.addColorStop(1, nRes.color);
-          roundRect(ctx, x, y, cellW, cellH, 12, grad, 'rgba(15,23,42,0.22)');
-        }
-
-        ctx.fillStyle = '#0f172a';
-        ctx.font = '800 14px system-ui, -apple-system, sans-serif';
-        ctx.fillText(day.label, x + 10, y + 22);
-
-        if (day.isHoliday || day.isWeekend) {
-          const badgeTxt = day.isHoliday ? 'FERIADO' : 'FINDE';
-          const bw = ctx.measureText(badgeTxt).width + 12;
-          roundRect(ctx, x + cellW - bw - 8, y + 8, bw, 20, 9, 'rgba(15,23,42,0.78)', null);
-          ctx.fillStyle = '#ffffff';
-          ctx.font = '700 10px system-ui, -apple-system, sans-serif';
-          ctx.fillText(badgeTxt, x + cellW - bw - 2, y + 21);
-        }
-
-        roundRect(ctx, x + 8, y + 40, cellW - 16, cellH - 50, 8, 'rgba(255,255,255,0.92)', null);
-        ctx.fillStyle = '#0f172a';
-        ctx.font = '800 15px system-ui, -apple-system, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(`${dRes.name} / ${nRes.name}`, x + cellW / 2, y + 66);
-
-        ctx.fillStyle = '#334155';
-        ctx.font = '600 11px system-ui, -apple-system, sans-serif';
-        ctx.fillText(`08–20: ${dRes.name} · 20–08: ${nRes.name}`, x + cellW / 2, y + 88);
-        ctx.textAlign = 'left';
-      } else {
-        roundRect(ctx, x, y, cellW, cellH, 12, '#f1f5f9', '#cbd5e1');
-        ctx.fillStyle = '#64748b';
-        ctx.font = '700 14px system-ui, -apple-system, sans-serif';
-        ctx.fillText(day.label, x + 10, y + 22);
-        ctx.font = '600 12px system-ui, -apple-system, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('Sin guardia', x + cellW / 2, y + cellH / 2 + 6);
-        ctx.textAlign = 'left';
-      }
-    });
-
-    roundRect(ctx, marginX, summaryTop, W - marginX * 2, summaryH, 14, '#ffffff', '#cbd5e1');
-    ctx.fillStyle = '#0f172a';
-    ctx.font = '800 18px system-ui, -apple-system, sans-serif';
-    ctx.fillText('RESUMEN DE GUARDIAS (8 TURNOS DE 12 HS POR RESIDENTE)', marginX + 20, summaryTop + 32);
-
-    ctx.font = '600 15px system-ui, -apple-system, sans-serif';
-    lastSolution.stats.forEach((st, i) => {
-      const r = residents[st.id];
-      const ry = summaryTop + 64 + i * 30;
-      ctx.fillStyle = r.color;
-      ctx.beginPath();
-      ctx.arc(marginX + 28, ry - 5, 7, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = '#0f172a';
-      ctx.fillText(
-        `${r.name}:  ${st.wkdayCount} Semana + ${st.wkndCount} Finde/Feriado  |  ${st.dayShiftCount} Diurnas / ${st.nightShiftCount} Nocturnas  |  Total: ${(st.wkdayCount + st.wkndCount) * 12} hs`,
-        marginX + 46,
-        ry
-      );
-    });
-
-    const link = document.createElement('a');
-    link.download = `guardias-hpn-${periodDays[0].dateStr}-a-${periodDays[periodDays.length - 1].dateStr}.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-  }
-
-  function roundRect(ctx, x, y, w, h, r, fillStyle, strokeStyle) {
+  function drawRoundRect(ctx, x, y, w, h, r, fillStyle, strokeStyle) {
+    const radius = Math.min(r, w / 2, h / 2);
     ctx.beginPath();
-    ctx.roundRect(x, y, w, h, r);
+    ctx.moveTo(x + radius, y);
+    ctx.arcTo(x + w, y, x + w, y + h, radius);
+    ctx.arcTo(x + w, y + h, x, y + h, radius);
+    ctx.arcTo(x, y + h, x, y, radius);
+    ctx.arcTo(x, y, x + w, y, radius);
+    ctx.closePath();
     if (fillStyle) {
       ctx.fillStyle = fillStyle;
       ctx.fill();
@@ -1064,6 +915,175 @@
       ctx.strokeStyle = strokeStyle;
       ctx.lineWidth = 1.5;
       ctx.stroke();
+    }
+  }
+
+  function downloadScheduleImage() {
+    if (!lastSolution || !periodDays.length) {
+      alert('Primero calculá el esquema.');
+      return;
+    }
+
+    try {
+      const W = 1600;
+      const cols = 7;
+      const firstDow = (periodDays[0].dayOfWeek + 6) % 7;
+      const totalCells = firstDow + periodDays.length;
+      const rows = Math.ceil(totalCells / cols);
+
+      const marginX = 50;
+      const headerH = 145;
+      const colGap = 12;
+      const rowGap = 12;
+      const cellW = Math.floor((W - marginX * 2 - colGap * (cols - 1)) / cols);
+      const cellH = 128;
+      const gridTop = headerH + 38;
+      const gridH = rows * (cellH + rowGap);
+      const summaryTop = gridTop + gridH + 24;
+      const summaryH = 225;
+      const H = summaryTop + summaryH + 35;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = W;
+      canvas.height = H;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(0, 0, W, H);
+
+      ctx.fillStyle = '#0f172a';
+      ctx.font = '800 34px system-ui, -apple-system, sans-serif';
+      ctx.fillText('ESQUEMA DE GUARDIAS — RESIDENTES', marginX, 54);
+
+      ctx.fillStyle = '#0284c7';
+      ctx.font = '700 22px system-ui, -apple-system, sans-serif';
+      ctx.fillText('Hospital Provincial de Neuquén', marginX, 88);
+
+      const firstD = periodDays[0].dateObj;
+      const lastD = periodDays[periodDays.length - 1].dateObj;
+      const rangeLabel = `Período: ${firstD.getDate()} de ${MESES_FULL[firstD.getMonth()]} al ${lastD.getDate()} de ${MESES_FULL[lastD.getMonth()]} ${lastD.getFullYear()}`;
+      ctx.fillStyle = '#475569';
+      ctx.font = '600 18px system-ui, -apple-system, sans-serif';
+      ctx.fillText(rangeLabel, marginX, 118);
+
+      let legX = W - marginX;
+      ctx.font = '700 15px system-ui, -apple-system, sans-serif';
+      [...residents].reverse().forEach(r => {
+        const textW = ctx.measureText(r.name).width;
+        legX -= (textW + 26);
+        ctx.fillStyle = r.color;
+        ctx.beginPath();
+        ctx.arc(legX, 52, 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.fillStyle = '#0f172a';
+        ctx.fillText(r.name, legX + 14, 57);
+        legX -= 18;
+      });
+
+      const dayLabels = ['LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO', 'DOMINGO'];
+      dayLabels.forEach((lbl, i) => {
+        const x = marginX + i * (cellW + colGap);
+        drawRoundRect(ctx, x, headerH, cellW, 28, 6, '#e2e8f0', null);
+        ctx.fillStyle = '#334155';
+        ctx.font = '700 13px system-ui, -apple-system, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(lbl, x + cellW / 2, headerH + 19);
+        ctx.textAlign = 'left';
+      });
+
+      periodDays.forEach((day, idx) => {
+        const pos = firstDow + idx;
+        const rIdx = Math.floor(pos / cols);
+        const cIdx = pos % cols;
+        const x = marginX + cIdx * (cellW + colGap);
+        const y = gridTop + rIdx * (cellH + rowGap);
+
+        const assigned = lastSolution.mapByDate[day.dateStr];
+        if (assigned && assigned.DAY && assigned.NIGHT) {
+          const dRes = assigned.DAY;
+          const nRes = assigned.NIGHT;
+
+          if (dRes.name === nRes.name) {
+            drawRoundRect(ctx, x, y, cellW, cellH, 12, dRes.color, 'rgba(15,23,42,0.2)');
+          } else {
+            const grad = ctx.createLinearGradient(x, y, x + cellW, y + cellH);
+            grad.addColorStop(0, dRes.color);
+            grad.addColorStop(0.47, dRes.color);
+            grad.addColorStop(0.53, nRes.color);
+            grad.addColorStop(1, nRes.color);
+            drawRoundRect(ctx, x, y, cellW, cellH, 12, grad, 'rgba(15,23,42,0.22)');
+          }
+
+          ctx.fillStyle = '#0f172a';
+          ctx.font = '800 14px system-ui, -apple-system, sans-serif';
+          ctx.fillText(day.label, x + 10, y + 22);
+
+          if (day.isHoliday || day.isWeekend) {
+            const badgeTxt = day.isHoliday ? 'FERIADO' : 'FINDE';
+            const bw = ctx.measureText(badgeTxt).width + 12;
+            drawRoundRect(ctx, x + cellW - bw - 8, y + 8, bw, 20, 9, 'rgba(15,23,42,0.78)', null);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '700 10px system-ui, -apple-system, sans-serif';
+            ctx.fillText(badgeTxt, x + cellW - bw - 2, y + 21);
+          }
+
+          drawRoundRect(ctx, x + 8, y + 40, cellW - 16, cellH - 50, 8, 'rgba(255,255,255,0.92)', null);
+          ctx.fillStyle = '#0f172a';
+          ctx.font = '800 15px system-ui, -apple-system, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(`${dRes.name} / ${nRes.name}`, x + cellW / 2, y + 66);
+
+          ctx.fillStyle = '#334155';
+          ctx.font = '600 11px system-ui, -apple-system, sans-serif';
+          ctx.fillText(`08–20: ${dRes.name} · 20–08: ${nRes.name}`, x + cellW / 2, y + 88);
+          ctx.textAlign = 'left';
+        } else {
+          drawRoundRect(ctx, x, y, cellW, cellH, 12, '#f1f5f9', '#cbd5e1');
+          ctx.fillStyle = '#64748b';
+          ctx.font = '700 14px system-ui, -apple-system, sans-serif';
+          ctx.fillText(day.label, x + 10, y + 22);
+          ctx.font = '600 12px system-ui, -apple-system, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('Sin guardia', x + cellW / 2, y + cellH / 2 + 6);
+          ctx.textAlign = 'left';
+        }
+      });
+
+      drawRoundRect(ctx, marginX, summaryTop, W - marginX * 2, summaryH, 14, '#ffffff', '#cbd5e1');
+      ctx.fillStyle = '#0f172a';
+      ctx.font = '800 18px system-ui, -apple-system, sans-serif';
+      ctx.fillText('RESUMEN DE GUARDIAS (8 TURNOS DE 12 HS POR RESIDENTE)', marginX + 20, summaryTop + 32);
+
+      ctx.font = '600 15px system-ui, -apple-system, sans-serif';
+      lastSolution.stats.forEach((st, i) => {
+        const r = residents[st.id];
+        const ry = summaryTop + 64 + i * 30;
+        ctx.fillStyle = r.color;
+        ctx.beginPath();
+        ctx.arc(marginX + 28, ry - 5, 7, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#0f172a';
+        ctx.fillText(
+          `${r.name}:  ${st.wkdayCount} Semana + ${st.wkndCount} Finde/Feriado  |  ${st.dayShiftCount} Diurnas / ${st.nightShiftCount} Nocturnas  |  Total: ${(st.wkdayCount + st.wkndCount) * 12} hs`,
+          marginX + 46,
+          ry
+        );
+      });
+
+      const dataUrl = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = `guardias-hpn-${periodDays[0].dateStr}-a-${periodDays[periodDays.length - 1].dateStr}.png`;
+      link.href = dataUrl;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      alert('No se pudo generar la descarga automática de la imagen: ' + (err && err.message ? err.message : err));
     }
   }
 
