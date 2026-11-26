@@ -284,14 +284,14 @@
     </div>
 
     <p class="intro-text">
-      Esquema de guardias de 12 hs para <strong>1.º año</strong> (del 16 al 15; viernes de 2.º año). Cada residente propone <strong>4 días</strong> y se combinan las <strong>40 guardias de 12 hs</strong> (8 por residente) buscando <strong>4 de fin de semana/feriado + 4 de semana</strong> con descanso de 48 hs y bloqueos <code>ART</code>, <code>ENF</code> e <code>IMP</code>.
+      Esquema de guardias de 12 hs para <strong>1.º año</strong> (del 16 al 15; viernes de 2.º año). Cada residente propone <strong>4 días</strong> (40 turnos de 12 hs en total = <strong>4 finde/feriado + 4 semana</strong> / 96 hs por residente) con <strong>descanso estricto de 48 hs reloj</strong> y bloqueos <code>ART</code>, <code>ENF</code> e <code>IMP</code>.
     </p>
 
     <div class="features-mini">
-      <span class="feat-tag">Objetivo: 4 Finde/Feriado + 4 Semana</span>
+      <span class="feat-tag">Regla: 4 Finde/Feriado + 4 Semana</span>
+      <span class="feat-tag">48 hs reloj estrictas</span>
       <span class="feat-tag">4 días propuestos por residente</span>
       <span class="feat-tag">Viernes: 2.º año</span>
-      <span class="feat-tag">GUARDIA / ART (máx. 2) / ENF / IMP</span>
       <span class="feat-tag">📥 Descarga en imagen PNG</span>
     </div>
 
@@ -317,14 +317,14 @@
           <option value="7">Agosto</option>
           <option value="8">Septiembre</option>
           <option value="9">Octubre</option>
-          <option value="10">Noviembre</option>
-          <option value="11" selected>Diciembre</option>
+          <option value="10" selected>Noviembre</option>
+          <option value="11">Diciembre</option>
         </select>
       </div>
       <div>
         <label>Mes de cierre (día 15):</label>
         <select id="endMonth">
-          <option value="0" selected>Enero</option>
+          <option value="0">Enero</option>
           <option value="1">Febrero</option>
           <option value="2">Marzo</option>
           <option value="3">Abril</option>
@@ -335,7 +335,7 @@
           <option value="8">Septiembre</option>
           <option value="9">Octubre</option>
           <option value="10">Noviembre</option>
-          <option value="11">Diciembre</option>
+          <option value="11" selected>Diciembre</option>
         </select>
       </div>
       <div>
@@ -747,16 +747,18 @@
     container.innerHTML = html;
   }
 
-  function canRest48Hours(resState, slot) {
+  // Descanso estricto de 48 horas reloj entre turnos (sin solapamiento y >= 48 hs libres)
+  function canRest48HoursClock(resState, slot) {
     for (const prev of resState.assignedSlots) {
+      if (slot.startHr < prev.endHr && prev.startHr < slot.endHr) return false;
       if (slot.startHr >= prev.endHr && (slot.startHr - prev.endHr) < 48) return false;
       if (prev.startHr >= slot.endHr && (prev.startHr - slot.endHr) < 48) return false;
-      if (slot.startHr < prev.endHr && prev.startHr < slot.endHr) return false;
     }
     return true;
   }
 
-  // Selecciona los 20 días del esquema priorizando: 1° Feriados, 2° Fines de semana, 3° Días propuestos, 4° Resto lun-jue (sin viernes)
+  // Selecciona 20 días del período (sin viernes):
+  // Prioriza feriados, fines de semana, días propuestos por residentes y luego días de semana.
   function pickTop20Days(indexedDays) {
     const nonFriday = indexedDays.filter(d => !d.isFriday);
     const proposedSet = new Set();
@@ -770,9 +772,8 @@
     return [...holidays, ...weekends, ...proposedWeekdays, ...otherWeekdays].slice(0, 20);
   }
 
-  // Busca asignación de 40 turnos (8 por residente) respetando 48h, bloqueos y propuestos,
-  // intentando primero 4 finde/feriado + 4 semana para todos, y cayendo de forma excepcional a 5 semana + 3 finde/feriado si es necesario.
-  function solveBalanced40(daysPool, targetWknd, targetWkday, allowExceptionFallback, maxIter) {
+  // Busca exactamente 4 finde/feriado + 4 semana (8 turnos de 12 h / 96 h) por residente
+  function solveExact4And4(daysPool, maxIter) {
     const chronoDays = [...daysPool].sort((a, b) => a.idx - b.idx);
     const slots = [];
     chronoDays.forEach(d => {
@@ -797,14 +798,7 @@
     function backtrack(slotIdx, assignedCount) {
       if (iterations++ > maxIter) return false;
       if (assignedCount === TOTAL_NEEDED) {
-        return state.every(st => {
-          const total = st.wkndCount + st.wkdayCount;
-          if (total !== 8) return false;
-          if (!allowExceptionFallback) {
-            return st.wkndCount === targetWknd && st.wkdayCount === targetWkday;
-          }
-          return st.wkndCount >= 3 && st.wkndCount <= 4 && st.wkdayCount >= 4 && st.wkdayCount <= 5;
-        });
+        return state.every(st => st.wkndCount === 4 && st.wkdayCount === 4);
       }
       if (slotIdx === slots.length) return false;
 
@@ -812,21 +806,15 @@
       const remainingSlots = slots.length - slotIdx;
       const remainingNeeded = TOTAL_NEEDED - assignedCount;
 
-      const maxW = allowExceptionFallback ? 4 : targetWknd;
-      const maxD = allowExceptionFallback ? 5 : targetWkday;
-
-      // Ordena candidatos:
-      // 1) Quien propuso este día primero
-      // 2) Quien aún necesita turnos de este tipo (finde/feriado o semana)
-      // 3) Menor cantidad total de turnos asignados
       const candidates = [...state]
         .filter(st => {
           const r = residents[st.id];
           if ((st.wkndCount + st.wkdayCount) >= 8) return false;
-          if (slot.isWknd && st.wkndCount >= maxW) return false;
-          if (!slot.isWknd && st.wkdayCount >= maxD) return false;
+          if (slot.isWknd && st.wkndCount >= 4) return false;
+          if (!slot.isWknd && st.wkdayCount >= 4) return false;
           if (r.blocks[slot.day.dateStr]) return false;
-          if (!canRest48Hours(st, slot)) return false;
+          if (st.assignedSlots.some(s => s.day.dateStr === slot.day.dateStr)) return false;
+          if (!canRest48HoursClock(st, slot)) return false;
           return true;
         })
         .sort((a, b) => {
@@ -835,17 +823,14 @@
           if (aProp !== bProp) return aProp - bProp;
 
           if (slot.isWknd) {
-            const needA = a.wkndCount < targetWknd ? 0 : 1;
-            const needB = b.wkndCount < targetWknd ? 0 : 1;
-            if (needA !== needB) return needA - needB;
             if (a.wkndCount !== b.wkndCount) return a.wkndCount - b.wkndCount;
           } else {
-            const needA = a.wkdayCount < targetWkday ? 0 : 1;
-            const needB = b.wkdayCount < targetWkday ? 0 : 1;
-            if (needA !== needB) return needA - needB;
             if (a.wkdayCount !== b.wkdayCount) return a.wkdayCount - b.wkdayCount;
           }
-          return (a.wkndCount + a.wkdayCount) - (b.wkndCount + b.wkdayCount);
+
+          return slot.type === 'DAY'
+            ? (a.dayShiftCount - b.dayShiftCount)
+            : (a.nightShiftCount - b.nightShiftCount);
         });
 
       for (const st of candidates) {
@@ -893,34 +878,18 @@
     const indexedDays = periodDays.map((d, i) => ({ ...d, idx: i }));
     const top20 = pickTop20Days(indexedDays);
 
-    // 1° intento: exacto 4 finde/feriado + 4 semana para los 5 residentes en los 20 días elegidos
-    let solved = solveBalanced40(top20, 4, 4, false, 1200000);
+    // 1° intento: 4 finde/feriado + 4 semana para los 5 residentes en los 20 días prioritarios
+    let solved = solveExact4And4(top20, 3500000);
     if (solved) {
       lastSolution = { ...solved, mode: 'ideal' };
       renderResult(lastSolution);
       return;
     }
 
-    // 2° intento: caso excepcional (5 semana + 3 finde/feriado solo si no alcanza el cupo de finde/feriado)
-    solved = solveBalanced40(top20, 4, 4, true, 1400000);
-    if (solved) {
-      lastSolution = { ...solved, mode: 'exception' };
-      renderResult(lastSolution);
-      return;
-    }
-
-    // 3° intento: ampliar pool a todos los días sin viernes buscando 4 + 4
+    // 2° intento: buscar 4 finde/feriado + 4 semana en todo el período (sin viernes)
     const allNonFriday = indexedDays.filter(d => !d.isFriday);
-    solved = solveBalanced40(allNonFriday, 4, 4, false, 1400000);
-    if (solved) {
-      lastSolution = { ...solved, mode: 'ideal' };
-      renderResult(lastSolution);
-      return;
-    }
-
-    // 4° intento: ampliar pool permitiendo excepción 5 semana + 3 finde/feriado
-    solved = solveBalanced40(allNonFriday, 4, 4, true, 1600000);
-    lastSolution = solved ? { ...solved, mode: 'exception' } : null;
+    solved = solveExact4And4(allNonFriday, 4500000);
+    lastSolution = solved ? { ...solved, mode: 'ideal' } : null;
     renderResult(lastSolution);
   }
 
@@ -936,16 +905,14 @@
 
     if (!solution) {
       dlBtn.disabled = true;
-      feedback.innerHTML = `<div class="alert alert-error">⚠️ No se pudo encontrar una combinación válida con los bloqueos y descansos actuales. Revisá las marcas y volvé a calcular.</div>`;
+      feedback.innerHTML = `<div class="alert alert-error">⚠️ Con los días propuestos, feriados y bloqueos actuales no se alcanzó exactamente 4 de fin de semana/feriado + 4 de semana para los 5 residentes respetando 48 hs reloj. Probá ajustar algún día propuesto o feriado para que haya suficiente cupo de finde/feriado.</div>`;
       calOut.innerHTML = '';
       sumOut.innerHTML = '';
       return;
     }
 
     dlBtn.disabled = false;
-    feedback.innerHTML = solution.mode === 'ideal'
-      ? `<div class="alert alert-success">✅ Esquema parejo (4 finde/feriado + 4 semana para cada residente = 8 turnos de 12 hs / 96 hs), con descanso ≥ 48 hs y feriados cubiertos.</div>`
-      : `<div class="alert alert-warn">⚠️ Caso excepcional por feriados/bloqueos/días disponibles: se ajustó algún residente a 5 de semana + 3 de finde/feriado manteniendo 8 turnos de 12 hs y descanso ≥ 48 hs.</div>`;
+    feedback.innerHTML = `<div class="alert alert-success">✅ Cronograma válido: cada residente tiene 4 de fin de semana/feriado + 4 de semana (8 turnos de 12 hs / 96 hs) con descanso estricto de 48 hs reloj.</div>`;
 
     let html = '<div class="calendar-grid">';
     ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].forEach(h => {
