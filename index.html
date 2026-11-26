@@ -20,7 +20,57 @@
     body { background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
     .container { max-width: 1140px; margin: 0 auto; }
     h1, h2, h3 { margin-top: 0; }
-    .hospital-sub { color: var(--muted); font-size: 0.95rem; margin-top: -10px; margin-bottom: 20px; }
+    .hospital-sub { color: var(--muted); font-size: 0.95rem; margin-top: -6px; margin-bottom: 14px; }
+
+    .intro-card {
+      background: linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%);
+      border: 1px solid #bae6fd;
+      border-radius: 14px;
+      padding: 18px 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.08);
+    }
+    .intro-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .intro-text {
+      margin: 8px 0 12px;
+      font-size: 0.93rem;
+      line-height: 1.45;
+      color: #334155;
+    }
+    .features-mini {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #0f172a;
+    }
+    .feat-tag {
+      background: #e0f2fe;
+      color: #0369a1;
+      padding: 4px 10px;
+      border-radius: 999px;
+    }
+    .quick-link-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+      background: #0284c7;
+      color: #fff;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      font-weight: 700;
+    }
+    .quick-link-btn:hover { background: #0369a1; }
 
     .card {
       background: var(--card);
@@ -196,15 +246,40 @@
 </head>
 <body>
 <div class="container">
-  <h1>🏥 Esquema de Guardias — Residentes</h1>
-  <p class="hospital-sub"><strong>Hospital Provincial de Neuquén</strong> · Turnos de 12 hs (08:00–20:00 y 20:01–07:59)</p>
+  <div class="intro-card">
+    <div class="intro-top">
+      <div>
+        <h1 style="margin-bottom: 4px;">🏥 Esquema de Guardias — Residentes</h1>
+        <p class="hospital-sub" style="margin: 0;"><strong>Hospital Provincial de Neuquén</strong> · Residentes de Salud Mental Interdisciplinaria y Psiquiatría</p>
+      </div>
+      <a class="quick-link-btn" href="https://alanfebrerogutierrez.github.io/GuardiasResis/" target="_blank" rel="noopener">
+        🌐 Abrir en GuardiasResis
+      </a>
+    </div>
+
+    <p class="intro-text">
+      Herramienta de organización rápida y fácil uso para armar los esquemas de guardias de 12 hs (08:00–20:00 y 20:01–07:59) con descanso de 48 hs, priorizando feriados y contemplando artículos, enfermedad o imprevistos.
+    </p>
+
+    <div class="features-mini">
+      <span class="feat-tag">⚡ Organización rápida</span>
+      <span class="feat-tag">🎨 5 colores sin repetir + degradé diario</span>
+      <span class="feat-tag">📅 Feriados y finde/semana</span>
+      <span class="feat-tag">📝 Artículos (máx. 2) / Enf / Imprevisto X</span>
+      <span class="feat-tag">📥 Descarga en imagen PNG</span>
+    </div>
+
+    <div style="font-size: 0.85rem; color: #0369a1; font-weight: 600;">
+      Disponible online en: <a href="https://alanfebrerogutierrez.github.io/GuardiasResis/" target="_blank" rel="noopener" style="color: #0284c7;">https://alanfebrerogutierrez.github.io/GuardiasResis/</a>
+    </div>
+  </div>
 
   <!-- PASO 0: PERÍODO -->
   <div class="card" id="step-period">
     <h2>1. Período</h2>
     <div class="row">
       <div>
-        <label>Mes de inicio (día 15):</label>
+        <label>Mes de inicio (día 16):</label>
         <select id="startMonth" onchange="syncEndMonth()">
           <option value="0">Enero</option>
           <option value="1">Febrero</option>
@@ -221,7 +296,7 @@
         </select>
       </div>
       <div>
-        <label>Mes de cierre (día 16):</label>
+        <label>Mes de cierre (día 15):</label>
         <select id="endMonth">
           <option value="0" selected>Enero</option>
           <option value="1">Febrero</option>
@@ -374,12 +449,12 @@
     const endM = parseInt(document.getElementById('endMonth').value, 10);
     const startY = parseInt(document.getElementById('startYear').value, 10);
 
-    const startDate = new Date(startY, startM, 15);
-    const endYear = endM < startM ? startY + 1 : startY;
-    const endDate = new Date(endYear, endM, 16);
+    const startDate = new Date(startY, startM, 16);
+    const endYear = endM <= startM ? startY + 1 : startY;
+    const endDate = new Date(endYear, endM, 15);
 
     if (endDate <= startDate) {
-      alert('Elegí un mes de cierre posterior al de inicio.');
+      alert('Elegí un mes de cierre válido posterior al de inicio.');
       return;
     }
 
@@ -599,67 +674,56 @@
     const monToThu = indexedDays.filter(d => !d.isWeekend && !d.isHoliday && !d.isFriday);
     const fridays = indexedDays.filter(d => d.isFriday && !d.isHoliday);
 
-    if (holidays.length + weekends.length + monToThu.length + fridays.length < 20) {
-      alert('El período seleccionado tiene menos de 20 días disponibles.');
+    const totalAvailableDays = holidays.length + weekends.length + monToThu.length + fridays.length;
+    if (totalAvailableDays < 20) {
+      alert('El período seleccionado tiene menos de 20 días.');
       return;
     }
 
-    const dayCombos = buildCandidateDaySets(holidays, weekends, monToThu, fridays, 90);
+    const orderedDays = [...holidays, ...weekends, ...monToThu, ...fridays];
+    const top20Priority = orderedDays.slice(0, 20).sort((a, b) => a.idx - b.idx);
 
-    let found = null;
-    for (const days20 of dayCombos) {
-      const solved = solveAssignment(days20, 4, 4, 4, 4);
-      if (solved) {
-        found = { ...solved, mode: 'ideal' };
-        break;
-      }
+    let solved = solveAssignment(top20Priority, 4, 4, 4, 4, 90000);
+    if (solved) {
+      lastSolution = { ...solved, mode: 'ideal' };
+      renderResult(lastSolution);
+      return;
     }
 
-    if (!found) {
-      for (const days20 of dayCombos) {
-        const solved = solveAssignment(days20, 4, 5, 3, 4);
-        if (solved) {
-          found = { ...solved, mode: 'exception' };
-          break;
-        }
-      }
+    solved = solveAssignment(top20Priority, 4, 5, 0, 4, 120000);
+    if (solved) {
+      lastSolution = { ...solved, mode: 'exception' };
+      renderResult(lastSolution);
+      return;
     }
 
-    lastSolution = found;
-    renderResult(found);
+    const widerPool = orderedDays.slice(0, Math.min(26, orderedDays.length)).sort((a, b) => a.idx - b.idx);
+    solved = solveAssignment(widerPool, 4, 5, 0, 3, 150000);
+    if (solved) {
+      lastSolution = { ...solved, mode: 'exception' };
+      renderResult(lastSolution);
+      return;
+    }
+
+    lastSolution = null;
+    renderResult(null);
   }
 
-  function buildCandidateDaySets(holidays, weekends, monToThu, fridays, maxSets) {
-    const sets = [];
-    const baseMandatory = holidays.slice(0, 20);
-    const remainingNeeded = 20 - baseMandatory.length;
-    const restPool = [...weekends, ...monToThu, ...fridays];
+  function solveAssignment(candidateDays, maxWknd, maxWkday, minWknd, minWkday, maxIter = 90000) {
+    const dayRank = (d) => (d.isHoliday ? 0 : d.isWeekend ? 1 : !d.isFriday ? 2 : 3);
+    const sortedDays = [...candidateDays].sort((a, b) => {
+      const rDiff = dayRank(a) - dayRank(b);
+      return rDiff !== 0 ? rDiff : a.idx - b.idx;
+    });
 
-    function pick(start, chosen) {
-      if (sets.length >= maxSets) return;
-      if (chosen.length === remainingNeeded) {
-        sets.push([...baseMandatory, ...chosen].sort((a, b) => a.idx - b.idx));
-        return;
-      }
-      for (let i = start; i <= restPool.length - (remainingNeeded - chosen.length); i++) {
-        chosen.push(restPool[i]);
-        pick(i + 1, chosen);
-        chosen.pop();
-        if (sets.length >= maxSets) return;
-      }
-    }
-
-    pick(0, []);
-    return sets;
-  }
-
-  function solveAssignment(days20, maxWknd, maxWkday, minWknd, minWkday) {
     const slots = [];
-    days20.forEach(d => {
+    sortedDays.forEach(d => {
       const isWknd = d.isWeekend || d.isHoliday;
       slots.push({ day: d, type: 'DAY', isWknd, startHr: d.idx * 24 + 8, endHr: d.idx * 24 + 20 });
       slots.push({ day: d, type: 'NIGHT', isWknd, startHr: d.idx * 24 + 20.02, endHr: (d.idx + 1) * 24 + 7.98 });
     });
+
+    const TOTAL_SLOTS_NEEDED = 40;
 
     const state = residents.map((r, i) => ({
       id: i,
@@ -671,22 +735,27 @@
     }));
 
     let iterations = 0;
-    const MAX_ITER = 45000;
 
-    function backtrack(slotIdx) {
-      if (iterations++ > MAX_ITER) return false;
-      if (slotIdx === slots.length) {
-        return state.every(st => st.wkndCount >= minWknd && st.wkdayCount >= minWkday);
+    function backtrack(slotIdx, assignedTotal) {
+      if (iterations++ > maxIter) return false;
+      if (assignedTotal === TOTAL_SLOTS_NEEDED) {
+        return state.every(st => {
+          const tot = st.wkndCount + st.wkdayCount;
+          return tot === 8 && st.wkndCount >= minWknd && st.wkdayCount >= minWkday;
+        });
       }
+      if (slotIdx === slots.length) return false;
 
       const slot = slots[slotIdx];
+      const remainingSlotsAfter = slots.length - slotIdx;
+      const remainingNeeded = TOTAL_SLOTS_NEEDED - assignedTotal;
+
       const candidates = [...state].sort((a, b) => {
         const totalA = a.wkndCount + a.wkdayCount;
         const totalB = b.wkndCount + b.wkdayCount;
         if (totalA !== totalB) return totalA - totalB;
-        const remA = slot.isWknd ? (maxWknd - a.wkndCount) : (maxWkday - a.wkdayCount);
-        const remB = slot.isWknd ? (maxWknd - b.wkndCount) : (maxWkday - b.wkdayCount);
-        return remB - remA;
+        if (slot.isWknd) return a.wkndCount - b.wkndCount;
+        return a.wkdayCount - b.wkdayCount;
       });
 
       for (const resState of candidates) {
@@ -699,7 +768,11 @@
 
         let restOk = true;
         for (const prev of resState.assignedSlots) {
-          if (slot.startHr - prev.endHr < 48) {
+          if (Math.abs(slot.startHr - prev.endHr) < 48 && slot.startHr >= prev.endHr) {
+            restOk = false;
+            break;
+          }
+          if (prev.startHr >= slot.endHr && (prev.startHr - slot.endHr) < 48) {
             restOk = false;
             break;
           }
@@ -710,21 +783,27 @@
         if (slot.type === 'DAY') resState.dayShiftCount++; else resState.nightShiftCount++;
         resState.assignedSlots.push(slot);
 
-        if (backtrack(slotIdx + 1)) return true;
+        if (backtrack(slotIdx + 1, assignedTotal + 1)) return true;
 
         resState.assignedSlots.pop();
         if (slot.isWknd) resState.wkndCount--; else resState.wkdayCount--;
         if (slot.type === 'DAY') resState.dayShiftCount--; else resState.nightShiftCount--;
       }
+
+      if (remainingSlotsAfter > remainingNeeded) {
+        if (backtrack(slotIdx + 1, assignedTotal)) return true;
+      }
+
       return false;
     }
 
-    if (backtrack(0)) {
+    if (backtrack(0, 0)) {
       const mapByDate = {};
-      slots.forEach(s => {
-        if (!mapByDate[s.day.dateStr]) mapByDate[s.day.dateStr] = {};
-        const owner = state.find(st => st.assignedSlots.includes(s));
-        mapByDate[s.day.dateStr][s.type] = residents[owner.id];
+      state.forEach(st => {
+        st.assignedSlots.forEach(s => {
+          if (!mapByDate[s.day.dateStr]) mapByDate[s.day.dateStr] = {};
+          mapByDate[s.day.dateStr][s.type] = residents[st.id];
+        });
       });
       return { mapByDate, stats: state };
     }
