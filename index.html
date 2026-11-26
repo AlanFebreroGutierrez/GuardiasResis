@@ -54,7 +54,6 @@
     button.success { background: #16a34a; }
     button.success:hover:not(:disabled) { background: #15803d; }
 
-    /* Selector de 5 colores */
     .color-picker-group { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
     .color-option {
       display: inline-flex;
@@ -85,7 +84,6 @@
       border: 1px solid rgba(0, 0, 0, 0.2);
     }
 
-    /* Grilla calendario semanal (Lun a Dom) */
     .calendar-grid {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
@@ -135,7 +133,6 @@
     .day-cell-btn.blocked-ENF { background: #fce7f3; border-color: #ec4899; color: #831843; font-weight: 700; }
     .day-cell-btn.blocked-IMP { background: #f3e8ff; border-color: #a855f7; color: #581c87; font-weight: 700; }
 
-    /* Resultado final */
     .cal-cell {
       min-height: 112px;
       border: 1px solid rgba(15, 23, 42, 0.14);
@@ -209,7 +206,797 @@
       <div>
         <label>Mes de inicio (día 15):</label>
         <select id="startMonth" onchange="syncEndMonth()">
-          <option value="0">Enero</option><option value="1">Febrero</option>
-          <option value="2">Marzo</option><option value="3">Abril</option>
-          <option value="4">Mayo</option><option value="5">Junio</option>
-          <option value="6">Julio</option><option value="7">Agosto</option>
+          <option value="0">Enero</option>
+          <option value="1">Febrero</option>
+          <option value="2">Marzo</option>
+          <option value="3">Abril</option>
+          <option value="4">Mayo</option>
+          <option value="5">Junio</option>
+          <option value="6">Julio</option>
+          <option value="7">Agosto</option>
+          <option value="8">Septiembre</option>
+          <option value="9">Octubre</option>
+          <option value="10">Noviembre</option>
+          <option value="11" selected>Diciembre</option>
+        </select>
+      </div>
+      <div>
+        <label>Mes de cierre (día 16):</label>
+        <select id="endMonth">
+          <option value="0" selected>Enero</option>
+          <option value="1">Febrero</option>
+          <option value="2">Marzo</option>
+          <option value="3">Abril</option>
+          <option value="4">Mayo</option>
+          <option value="5">Junio</option>
+          <option value="6">Julio</option>
+          <option value="7">Agosto</option>
+          <option value="8">Septiembre</option>
+          <option value="9">Octubre</option>
+          <option value="10">Noviembre</option>
+          <option value="11">Diciembre</option>
+        </select>
+      </div>
+      <div>
+        <label>Año de inicio:</label>
+        <input type="number" id="startYear" value="2026" style="width: 105px;" />
+      </div>
+      <div style="align-self: flex-end;">
+        <button type="button" onclick="initPeriod()">Confirmar Período</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASO 1: FERIADOS -->
+  <div class="card" id="step-holidays" style="display:none;">
+    <h2>2. Feriados del Período</h2>
+    <p style="margin: 0 0 8px; font-size: 0.9rem;">
+      Marcá los días que sean <strong>feriado</strong> (computan como fin de semana/feriado y tienen prioridad para cubrirse):
+    </p>
+    <div id="holiday-calendar-grid"></div>
+    <div class="row" style="margin-top: 15px;">
+      <button type="button" onclick="confirmHolidays()">Continuar a Carga de Residentes</button>
+    </div>
+  </div>
+
+  <!-- PASO 2: RESIDENTES -->
+  <div class="card" id="step-residents" style="display:none;">
+    <h2>3. Carga de Residentes (<span id="res-count">0</span>/5)</h2>
+    <div class="row">
+      <div>
+        <label>1° Seleccioná un color (obligatorio y único):</label>
+        <div class="color-picker-group" id="colorPicker"></div>
+      </div>
+      <div>
+        <label>2° Nombre:</label>
+        <input type="text" id="resName" placeholder="Ej: Alan Febrero" />
+      </div>
+      <div>
+        <label>Motivo al marcar:</label>
+        <select id="blockType">
+          <option value="ART">Artículo (máx. 2)</option>
+          <option value="ENF">Enfermedad</option>
+          <option value="IMP">Imprevisto X</option>
+        </select>
+      </div>
+      <div>
+        <label>Viernes habituales:</label>
+        <select id="fridayRule">
+          <option value="avoid">Evitar viernes</option>
+          <option value="allow">Disponible los viernes</option>
+        </select>
+      </div>
+    </div>
+
+    <p style="margin: 14px 0 6px; font-size: 0.9rem;">
+      Calendario del período: tocá los días que <strong>NO puede hacer guardia</strong> según el motivo seleccionado:
+    </p>
+    <div id="resident-calendar-grid"></div>
+
+    <div class="row" style="margin-top: 15px;">
+      <button type="button" onclick="saveResident()">Guardar Residente</button>
+      <button type="button" class="secondary" onclick="clearCurrentGrid()">Limpiar marcas</button>
+    </div>
+
+    <div id="residents-list-container" style="margin-top: 18px;"></div>
+
+    <div style="margin-top: 18px; border-top: 1px solid var(--border); padding-top: 15px;">
+      <button type="button" class="success" style="font-size: 1rem; padding: 11px 18px;" onclick="generateSchedule()">
+        ⚡ Calcular Esquema Óptimo
+      </button>
+    </div>
+  </div>
+
+  <!-- PASO 3: RESULTADO -->
+  <div class="card" id="step-result" style="display:none;">
+    <div class="row" style="justify-content: space-between;">
+      <h2 id="result-title">Cronograma Final</h2>
+      <button type="button" class="success" onclick="downloadScheduleImage()">📥 Descargar Imagen (PNG)</button>
+    </div>
+    <div id="solver-feedback"></div>
+    <div id="calendar-output"></div>
+    <h3 style="margin-top: 24px;">Resumen por Residente</h3>
+    <div id="summary-table"></div>
+  </div>
+</div>
+
+<script>
+  const DIAS_SEMANA = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  const MESES_FULL = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+  const PALETTE = [
+    { name: 'Rosado', hex: '#f472b6' },
+    { name: 'Violeta', hex: '#c084fc' },
+    { name: 'Verde', hex: '#4ade80' },
+    { name: 'Celeste', hex: '#38bdf8' },
+    { name: 'Naranja', hex: '#fb923c' }
+  ];
+
+  let selectedColorHex = null;
+  let periodDays = [];
+  let residents = [];
+  let currentBlocks = {};
+  let lastSolution = null;
+
+  function renderColorPicker() {
+    const usedHexes = new Set(residents.map(r => r.color.toLowerCase()));
+    if (selectedColorHex && usedHexes.has(selectedColorHex.toLowerCase())) {
+      selectedColorHex = null;
+    }
+
+    const container = document.getElementById('colorPicker');
+    container.innerHTML = '';
+    PALETTE.forEach(item => {
+      const isTaken = usedHexes.has(item.hex.toLowerCase());
+      const isActive = selectedColorHex && selectedColorHex.toLowerCase() === item.hex.toLowerCase();
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.disabled = isTaken;
+      btn.className = 'color-option' + (isActive ? ' active' : '') + (isTaken ? ' taken' : '');
+      btn.innerHTML = `<span class="swatch" style="background:${item.hex}"></span>${item.name}${isTaken ? ' (usado)' : ''}`;
+      btn.onclick = () => {
+        if (isTaken) return;
+        selectedColorHex = item.hex;
+        renderColorPicker();
+      };
+      container.appendChild(btn);
+    });
+  }
+
+  function syncEndMonth() {
+    const m = parseInt(document.getElementById('startMonth').value, 10);
+    document.getElementById('endMonth').value = String((m + 1) % 12);
+  }
+
+  function initPeriod() {
+    const startM = parseInt(document.getElementById('startMonth').value, 10);
+    const endM = parseInt(document.getElementById('endMonth').value, 10);
+    const startY = parseInt(document.getElementById('startYear').value, 10);
+
+    const startDate = new Date(startY, startM, 15);
+    const endYear = endM < startM ? startY + 1 : startY;
+    const endDate = new Date(endYear, endM, 16);
+
+    if (endDate <= startDate) {
+      alert('Elegí un mes de cierre posterior al de inicio.');
+      return;
+    }
+
+    periodDays = [];
+    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      const dow = d.getDay();
+      periodDays.push({
+        dateObj: new Date(d),
+        dateStr: `${yyyy}-${mm}-${dd}`,
+        dayOfWeek: dow,
+        label: `${d.getDate()} ${MESES[d.getMonth()]}`,
+        isWeekend: dow === 0 || dow === 6,
+        isFriday: dow === 5,
+        isHoliday: false
+      });
+    }
+
+    residents = [];
+    currentBlocks = {};
+    selectedColorHex = null;
+    lastSolution = null;
+
+    document.getElementById('step-holidays').style.display = 'block';
+    document.getElementById('step-residents').style.display = 'none';
+    document.getElementById('step-result').style.display = 'none';
+    renderHolidayCalendarGrid();
+  }
+
+  function renderHolidayCalendarGrid() {
+    const container = document.getElementById('holiday-calendar-grid');
+    let html = '<div class="calendar-grid">';
+    ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].forEach(h => {
+      html += `<div class="cal-header">${h}</div>`;
+    });
+
+    const firstDow = (periodDays[0].dayOfWeek + 6) % 7;
+    for (let i = 0; i < firstDow; i++) {
+      html += `<div class="cal-empty"></div>`;
+    }
+
+    periodDays.forEach((day, idx) => {
+      let cls = 'day-cell-btn';
+      if (day.isHoliday) cls += ' holiday';
+      else if (day.isWeekend) cls += ' weekend';
+
+      const tag = day.isHoliday ? 'FERIADO' : (day.isWeekend ? 'FinDe' : DIAS_SEMANA[day.dayOfWeek]);
+      html += `<div class="${cls}" onclick="toggleHoliday(${idx})">
+        <span>${day.label}</span>
+        <small>${tag}</small>
+      </div>`;
+    });
+
+    html += '</div>';
+    container.innerHTML = html;
+  }
+
+  function toggleHoliday(idx) {
+    periodDays[idx].isHoliday = !periodDays[idx].isHoliday;
+    renderHolidayCalendarGrid();
+  }
+
+  function confirmHolidays() {
+    document.getElementById('step-residents').style.display = 'block';
+    renderColorPicker();
+    renderResidentCalendarGrid();
+    renderResidentsList();
+    document.getElementById('step-residents').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function renderResidentCalendarGrid() {
+    const container = document.getElementById('resident-calendar-grid');
+    let html = '<div class="calendar-grid">';
+    ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].forEach(h => {
+      html += `<div class="cal-header">${h}</div>`;
+    });
+
+    const firstDow = (periodDays[0].dayOfWeek + 6) % 7;
+    for (let i = 0; i < firstDow; i++) {
+      html += `<div class="cal-empty"></div>`;
+    }
+
+    periodDays.forEach((day, idx) => {
+      const block = currentBlocks[day.dateStr];
+      let cls = 'day-cell-btn';
+      if (block) cls += ` blocked-${block}`;
+      else if (day.isHoliday) cls += ' holiday';
+      else if (day.isWeekend) cls += ' weekend';
+
+      const subLabel = block || (day.isHoliday ? 'FER' : (day.isWeekend ? 'FinDe' : DIAS_SEMANA[day.dayOfWeek]));
+      html += `<div class="${cls}" onclick="toggleDayBlock(${idx})">
+        <span>${day.label}</span>
+        <small>${subLabel}</small>
+      </div>`;
+    });
+
+    html += '</div>';
+    container.innerHTML = html;
+  }
+
+  function toggleDayBlock(idx) {
+    const day = periodDays[idx];
+    const type = document.getElementById('blockType').value;
+
+    if (currentBlocks[day.dateStr] === type) {
+      delete currentBlocks[day.dateStr];
+      renderResidentCalendarGrid();
+      return;
+    }
+
+    if (type === 'ART') {
+      const currentArtCount = Object.values(currentBlocks).filter(v => v === 'ART').length;
+      if (currentArtCount >= 2) {
+        alert('Como máximo se pueden cargar 2 artículos por residente en el esquema.');
+        return;
+      }
+    }
+
+    currentBlocks[day.dateStr] = type;
+    renderResidentCalendarGrid();
+  }
+
+  function clearCurrentGrid() {
+    currentBlocks = {};
+    renderResidentCalendarGrid();
+  }
+
+  function saveResident() {
+    if (residents.length >= 5) {
+      alert('Ya cargaste los 5 residentes.');
+      return;
+    }
+    if (!selectedColorHex) {
+      alert('Seleccioná un color antes de guardar el residente.');
+      return;
+    }
+    const usedHexes = new Set(residents.map(r => r.color.toLowerCase()));
+    if (usedHexes.has(selectedColorHex.toLowerCase())) {
+      alert('Ese color ya fue asignado a otro residente. Elegí uno disponible.');
+      return;
+    }
+
+    const name = document.getElementById('resName').value.trim();
+    if (!name) {
+      alert('Ingresá un nombre.');
+      return;
+    }
+
+    const artCount = Object.values(currentBlocks).filter(v => v === 'ART').length;
+    if (artCount > 2) {
+      alert('Máximo 2 artículos por residente.');
+      return;
+    }
+
+    residents.push({
+      name,
+      color: selectedColorHex,
+      blocks: { ...currentBlocks },
+      avoidFriday: document.getElementById('fridayRule').value === 'avoid'
+    });
+
+    document.getElementById('resName').value = '';
+    currentBlocks = {};
+    selectedColorHex = null;
+    renderColorPicker();
+    renderResidentCalendarGrid();
+    renderResidentsList();
+  }
+
+  function removeResident(idx) {
+    residents.splice(idx, 1);
+    renderColorPicker();
+    renderResidentsList();
+  }
+
+  function getColorLabel(hex) {
+    const found = PALETTE.find(p => p.hex.toLowerCase() === hex.toLowerCase());
+    return found ? found.name : hex;
+  }
+
+  function renderResidentsList() {
+    document.getElementById('res-count').innerText = residents.length;
+    const container = document.getElementById('residents-list-container');
+    if (!residents.length) {
+      container.innerHTML = '';
+      return;
+    }
+    let html = '<table><thead><tr><th>Residente</th><th>Color</th><th>Viernes</th><th>Bloqueos</th><th>Acción</th></tr></thead><tbody>';
+    residents.forEach((r, idx) => {
+      const blocks = Object.entries(r.blocks).map(([ds, m]) => {
+        const d = periodDays.find(x => x.dateStr === ds);
+        return `${d ? d.label : ds} (${m})`;
+      });
+      html += `<tr>
+        <td><strong>${r.name}</strong></td>
+        <td><span class="color-dot" style="background:${r.color}"></span>${getColorLabel(r.color)}</td>
+        <td>${r.avoidFriday ? 'Evitar viernes' : 'Disponible'}</td>
+        <td>${blocks.length ? blocks.join(', ') : 'Ninguno'}</td>
+        <td><button type="button" class="danger" style="padding:4px 8px; font-size:0.8rem;" onclick="removeResident(${idx})">Quitar</button></td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
+  }
+
+  function generateSchedule() {
+    if (residents.length !== 5) {
+      alert('Cargá los 5 residentes para calcular el esquema.');
+      return;
+    }
+
+    const indexedDays = periodDays.map((d, i) => ({ ...d, idx: i }));
+    const holidays = indexedDays.filter(d => d.isHoliday);
+    const weekends = indexedDays.filter(d => d.isWeekend && !d.isHoliday);
+    const monToThu = indexedDays.filter(d => !d.isWeekend && !d.isHoliday && !d.isFriday);
+    const fridays = indexedDays.filter(d => d.isFriday && !d.isHoliday);
+
+    if (holidays.length + weekends.length + monToThu.length + fridays.length < 20) {
+      alert('El período seleccionado tiene menos de 20 días disponibles.');
+      return;
+    }
+
+    const dayCombos = buildCandidateDaySets(holidays, weekends, monToThu, fridays, 90);
+
+    let found = null;
+    for (const days20 of dayCombos) {
+      const solved = solveAssignment(days20, 4, 4, 4, 4);
+      if (solved) {
+        found = { ...solved, mode: 'ideal' };
+        break;
+      }
+    }
+
+    if (!found) {
+      for (const days20 of dayCombos) {
+        const solved = solveAssignment(days20, 4, 5, 3, 4);
+        if (solved) {
+          found = { ...solved, mode: 'exception' };
+          break;
+        }
+      }
+    }
+
+    lastSolution = found;
+    renderResult(found);
+  }
+
+  function buildCandidateDaySets(holidays, weekends, monToThu, fridays, maxSets) {
+    const sets = [];
+    const baseMandatory = holidays.slice(0, 20);
+    const remainingNeeded = 20 - baseMandatory.length;
+    const restPool = [...weekends, ...monToThu, ...fridays];
+
+    function pick(start, chosen) {
+      if (sets.length >= maxSets) return;
+      if (chosen.length === remainingNeeded) {
+        sets.push([...baseMandatory, ...chosen].sort((a, b) => a.idx - b.idx));
+        return;
+      }
+      for (let i = start; i <= restPool.length - (remainingNeeded - chosen.length); i++) {
+        chosen.push(restPool[i]);
+        pick(i + 1, chosen);
+        chosen.pop();
+        if (sets.length >= maxSets) return;
+      }
+    }
+
+    pick(0, []);
+    return sets;
+  }
+
+  function solveAssignment(days20, maxWknd, maxWkday, minWknd, minWkday) {
+    const slots = [];
+    days20.forEach(d => {
+      const isWknd = d.isWeekend || d.isHoliday;
+      slots.push({ day: d, type: 'DAY', isWknd, startHr: d.idx * 24 + 8, endHr: d.idx * 24 + 20 });
+      slots.push({ day: d, type: 'NIGHT', isWknd, startHr: d.idx * 24 + 20.02, endHr: (d.idx + 1) * 24 + 7.98 });
+    });
+
+    const state = residents.map((r, i) => ({
+      id: i,
+      wkndCount: 0,
+      wkdayCount: 0,
+      dayShiftCount: 0,
+      nightShiftCount: 0,
+      assignedSlots: []
+    }));
+
+    let iterations = 0;
+    const MAX_ITER = 45000;
+
+    function backtrack(slotIdx) {
+      if (iterations++ > MAX_ITER) return false;
+      if (slotIdx === slots.length) {
+        return state.every(st => st.wkndCount >= minWknd && st.wkdayCount >= minWkday);
+      }
+
+      const slot = slots[slotIdx];
+      const candidates = [...state].sort((a, b) => {
+        const totalA = a.wkndCount + a.wkdayCount;
+        const totalB = b.wkndCount + b.wkdayCount;
+        if (totalA !== totalB) return totalA - totalB;
+        const remA = slot.isWknd ? (maxWknd - a.wkndCount) : (maxWkday - a.wkdayCount);
+        const remB = slot.isWknd ? (maxWknd - b.wkndCount) : (maxWkday - b.wkdayCount);
+        return remB - remA;
+      });
+
+      for (const resState of candidates) {
+        const resData = residents[resState.id];
+        if (resState.wkndCount + resState.wkdayCount >= 8) continue;
+        if (slot.isWknd && resState.wkndCount >= maxWknd) continue;
+        if (!slot.isWknd && resState.wkdayCount >= maxWkday) continue;
+        if (resData.blocks[slot.day.dateStr]) continue;
+        if (slot.day.isFriday && resData.avoidFriday) continue;
+
+        let restOk = true;
+        for (const prev of resState.assignedSlots) {
+          if (slot.startHr - prev.endHr < 48) {
+            restOk = false;
+            break;
+          }
+        }
+        if (!restOk) continue;
+
+        if (slot.isWknd) resState.wkndCount++; else resState.wkdayCount++;
+        if (slot.type === 'DAY') resState.dayShiftCount++; else resState.nightShiftCount++;
+        resState.assignedSlots.push(slot);
+
+        if (backtrack(slotIdx + 1)) return true;
+
+        resState.assignedSlots.pop();
+        if (slot.isWknd) resState.wkndCount--; else resState.wkdayCount--;
+        if (slot.type === 'DAY') resState.dayShiftCount--; else resState.nightShiftCount--;
+      }
+      return false;
+    }
+
+    if (backtrack(0)) {
+      const mapByDate = {};
+      slots.forEach(s => {
+        if (!mapByDate[s.day.dateStr]) mapByDate[s.day.dateStr] = {};
+        const owner = state.find(st => st.assignedSlots.includes(s));
+        mapByDate[s.day.dateStr][s.type] = residents[owner.id];
+      });
+      return { mapByDate, stats: state };
+    }
+    return null;
+  }
+
+  function renderResult(solution) {
+    const stepRes = document.getElementById('step-result');
+    const feedback = document.getElementById('solver-feedback');
+    const calOut = document.getElementById('calendar-output');
+    const sumOut = document.getElementById('summary-table');
+
+    stepRes.style.display = 'block';
+    stepRes.scrollIntoView({ behavior: 'smooth' });
+
+    if (!solution) {
+      feedback.innerHTML = `<div class="alert alert-error">
+        ⚠️ No se pudo armar una combinación válida con las restricciones actuales. Revisá bloqueos coincidentes, feriados o habilitá viernes.
+      </div>`;
+      calOut.innerHTML = '';
+      sumOut.innerHTML = '';
+      return;
+    }
+
+    feedback.innerHTML = solution.mode === 'ideal'
+      ? `<div class="alert alert-success">✅ Esquema óptimo: 4 guardias de semana + 4 de fin de semana/feriado para cada residente, con descanso ≥ 48 hs.</div>`
+      : `<div class="alert alert-warn">⚠️ Esquema ajustado por restricciones: se cubrieron los 20 días respetando descansos y bloqueos, con algún residente en 5 guardias de semana.</div>`;
+
+    let html = '<div class="calendar-grid">';
+    ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].forEach(h => {
+      html += `<div class="cal-header">${h}</div>`;
+    });
+
+    const firstDow = (periodDays[0].dayOfWeek + 6) % 7;
+    for (let i = 0; i < firstDow; i++) html += `<div class="cal-empty"></div>`;
+
+    periodDays.forEach(day => {
+      const assigned = solution.mapByDate[day.dateStr];
+      const tag = day.isHoliday ? 'FERIADO' : (day.isWeekend ? 'FINDE' : '');
+
+      if (assigned) {
+        const dRes = assigned.DAY;
+        const nRes = assigned.NIGHT;
+        const samePerson = dRes.name === nRes.name;
+        const grad = samePerson
+          ? dRes.color
+          : `linear-gradient(125deg, ${dRes.color} 0%, ${dRes.color} 46%, ${nRes.color} 54%, ${nRes.color} 100%)`;
+
+        html += `<div class="cal-cell" style="background: ${grad};">
+          <div class="cal-top">
+            <span class="cal-date">${day.label}</span>
+            ${tag ? `<span class="badge">${tag}</span>` : ''}
+          </div>
+          <div style="text-align:center;">
+            <span class="shared-pill">${samePerson ? '1 RESIDENTE (12h)' : '2 RESIDENTES EN EL DÍA'}</span>
+            <div class="guard-box">
+              <div class="guard-names">${dRes.name} / ${nRes.name}</div>
+              <div class="shift-times">08–20: ${dRes.name} · 20–08: ${nRes.name}</div>
+            </div>
+          </div>
+        </div>`;
+      } else {
+        html += `<div class="cal-cell uncovered">
+          <div class="cal-top">
+            <span class="cal-date">${day.label}</span>
+            ${tag ? `<span class="badge" style="background:#94a3b8;">${tag}</span>` : ''}
+          </div>
+          <div style="font-size:0.75rem; text-align:center; margin-bottom:12px;">Sin guardia</div>
+        </div>`;
+      }
+    });
+
+    html += '</div>';
+    calOut.innerHTML = html;
+
+    let tbl = `<table><thead><tr>
+      <th>Residente</th><th>Semana (12h)</th><th>Fin de Semana / Feriado (12h)</th>
+      <th>Diurnas</th><th>Nocturnas</th><th>Total Horas</th>
+    </tr></thead><tbody>`;
+
+    solution.stats.forEach(st => {
+      const r = residents[st.id];
+      tbl += `<tr>
+        <td><span class="color-dot" style="background:${r.color}"></span><strong>${r.name}</strong></td>
+        <td>${st.wkdayCount}</td>
+        <td>${st.wkndCount}</td>
+        <td>${st.dayShiftCount}</td>
+        <td>${st.nightShiftCount}</td>
+        <td><strong>${(st.wkdayCount + st.wkndCount) * 12} hs</strong></td>
+      </tr>`;
+    });
+    tbl += '</tbody></table>';
+    sumOut.innerHTML = tbl;
+  }
+
+  function downloadScheduleImage() {
+    if (!lastSolution) {
+      alert('Primero calculá el esquema.');
+      return;
+    }
+
+    const W = 1600;
+    const cols = 7;
+    const firstDow = (periodDays[0].dayOfWeek + 6) % 7;
+    const totalCells = firstDow + periodDays.length;
+    const rows = Math.ceil(totalCells / cols);
+
+    const marginX = 50;
+    const headerH = 145;
+    const colGap = 12;
+    const rowGap = 12;
+    const cellW = Math.floor((W - marginX * 2 - colGap * (cols - 1)) / cols);
+    const cellH = 128;
+    const gridTop = headerH + 38;
+    const gridH = rows * (cellH + rowGap);
+    const summaryTop = gridTop + gridH + 24;
+    const summaryH = 225;
+    const H = summaryTop + summaryH + 35;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d');
+
+    ctx.fillStyle = '#f8fafc';
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.fillStyle = '#0f172a';
+    ctx.font = '800 34px system-ui, -apple-system, sans-serif';
+    ctx.fillText('ESQUEMA DE GUARDIAS — RESIDENTES', marginX, 54);
+
+    ctx.fillStyle = '#0284c7';
+    ctx.font = '700 22px system-ui, -apple-system, sans-serif';
+    ctx.fillText('Hospital Provincial de Neuquén', marginX, 88);
+
+    const firstD = periodDays[0].dateObj;
+    const lastD = periodDays[periodDays.length - 1].dateObj;
+    const rangeLabel = `Período: ${firstD.getDate()} de ${MESES_FULL[firstD.getMonth()]} al ${lastD.getDate()} de ${MESES_FULL[lastD.getMonth()]} ${lastD.getFullYear()}`;
+    ctx.fillStyle = '#475569';
+    ctx.font = '600 18px system-ui, -apple-system, sans-serif';
+    ctx.fillText(rangeLabel, marginX, 118);
+
+    let legX = W - marginX;
+    ctx.font = '700 15px system-ui, -apple-system, sans-serif';
+    [...residents].reverse().forEach(r => {
+      const textW = ctx.measureText(r.name).width;
+      legX -= (textW + 26);
+      ctx.fillStyle = r.color;
+      ctx.beginPath();
+      ctx.arc(legX, 52, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      ctx.fillStyle = '#0f172a';
+      ctx.fillText(r.name, legX + 14, 57);
+      legX -= 18;
+    });
+
+    const dayLabels = ['LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO', 'DOMINGO'];
+    dayLabels.forEach((lbl, i) => {
+      const x = marginX + i * (cellW + colGap);
+      roundRect(ctx, x, headerH, cellW, 28, 6, '#e2e8f0', null);
+      ctx.fillStyle = '#334155';
+      ctx.font = '700 13px system-ui, -apple-system, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(lbl, x + cellW / 2, headerH + 19);
+      ctx.textAlign = 'left';
+    });
+
+    periodDays.forEach((day, idx) => {
+      const pos = firstDow + idx;
+      const rIdx = Math.floor(pos / cols);
+      const cIdx = pos % cols;
+      const x = marginX + cIdx * (cellW + colGap);
+      const y = gridTop + rIdx * (cellH + rowGap);
+
+      const assigned = lastSolution.mapByDate[day.dateStr];
+      if (assigned) {
+        const dRes = assigned.DAY;
+        const nRes = assigned.NIGHT;
+
+        if (dRes.name === nRes.name) {
+          roundRect(ctx, x, y, cellW, cellH, 12, dRes.color, 'rgba(15,23,42,0.2)');
+        } else {
+          const grad = ctx.createLinearGradient(x, y, x + cellW, y + cellH);
+          grad.addColorStop(0, dRes.color);
+          grad.addColorStop(0.47, dRes.color);
+          grad.addColorStop(0.53, nRes.color);
+          grad.addColorStop(1, nRes.color);
+          roundRect(ctx, x, y, cellW, cellH, 12, grad, 'rgba(15,23,42,0.22)');
+        }
+
+        ctx.fillStyle = '#0f172a';
+        ctx.font = '800 14px system-ui, -apple-system, sans-serif';
+        ctx.fillText(day.label, x + 10, y + 22);
+
+        if (day.isHoliday || day.isWeekend) {
+          const badgeTxt = day.isHoliday ? 'FERIADO' : 'FINDE';
+          const bw = ctx.measureText(badgeTxt).width + 12;
+          roundRect(ctx, x + cellW - bw - 8, y + 8, bw, 20, 9, 'rgba(15,23,42,0.78)', null);
+          ctx.fillStyle = '#ffffff';
+          ctx.font = '700 10px system-ui, -apple-system, sans-serif';
+          ctx.fillText(badgeTxt, x + cellW - bw - 2, y + 21);
+        }
+
+        roundRect(ctx, x + 8, y + 40, cellW - 16, cellH - 50, 8, 'rgba(255,255,255,0.92)', null);
+        ctx.fillStyle = '#0f172a';
+        ctx.font = '800 15px system-ui, -apple-system, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(`${dRes.name} / ${nRes.name}`, x + cellW / 2, y + 66);
+
+        ctx.fillStyle = '#334155';
+        ctx.font = '600 11px system-ui, -apple-system, sans-serif';
+        ctx.fillText(`08–20: ${dRes.name} · 20–08: ${nRes.name}`, x + cellW / 2, y + 88);
+        ctx.textAlign = 'left';
+      } else {
+        roundRect(ctx, x, y, cellW, cellH, 12, '#f1f5f9', '#cbd5e1');
+        ctx.fillStyle = '#64748b';
+        ctx.font = '700 14px system-ui, -apple-system, sans-serif';
+        ctx.fillText(day.label, x + 10, y + 22);
+        ctx.font = '600 12px system-ui, -apple-system, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Sin guardia', x + cellW / 2, y + cellH / 2 + 6);
+        ctx.textAlign = 'left';
+      }
+    });
+
+    roundRect(ctx, marginX, summaryTop, W - marginX * 2, summaryH, 14, '#ffffff', '#cbd5e1');
+    ctx.fillStyle = '#0f172a';
+    ctx.font = '800 18px system-ui, -apple-system, sans-serif';
+    ctx.fillText('RESUMEN DE GUARDIAS (8 TURNOS DE 12 HS POR RESIDENTE)', marginX + 20, summaryTop + 32);
+
+    ctx.font = '600 15px system-ui, -apple-system, sans-serif';
+    lastSolution.stats.forEach((st, i) => {
+      const r = residents[st.id];
+      const ry = summaryTop + 64 + i * 30;
+      ctx.fillStyle = r.color;
+      ctx.beginPath();
+      ctx.arc(marginX + 28, ry - 5, 7, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#0f172a';
+      ctx.fillText(
+        `${r.name}:  ${st.wkdayCount} Semana + ${st.wkndCount} Finde/Feriado  |  ${st.dayShiftCount} Diurnas / ${st.nightShiftCount} Nocturnas  |  Total: ${(st.wkdayCount + st.wkndCount) * 12} hs`,
+        marginX + 46,
+        ry
+      );
+    });
+
+    const link = document.createElement('a');
+    link.download = `guardias-hpn-${periodDays[0].dateStr}-a-${periodDays[periodDays.length - 1].dateStr}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }
+
+  function roundRect(ctx, x, y, w, h, r, fillStyle, strokeStyle) {
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, r);
+    if (fillStyle) {
+      ctx.fillStyle = fillStyle;
+      ctx.fill();
+    }
+    if (strokeStyle) {
+      ctx.strokeStyle = strokeStyle;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+  }
+
+  renderColorPicker();
+</script>
+</body>
+</html>
