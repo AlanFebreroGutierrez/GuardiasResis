@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Esquema de Guardias - Hospital Provincial de Neuquén</title>
+  <title>Esquema de Guardias 1.º Año - Hospital Provincial de Neuquén</title>
   <style>
     :root {
       --bg: #f1f5f9;
@@ -15,6 +15,7 @@
       --border: #cbd5e1;
       --weekend: #fef3c7;
       --holiday: #fee2e2;
+      --friday-skip: #e2e8f0;
     }
     * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
     body { background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
@@ -104,25 +105,25 @@
     button.success { background: #16a34a; }
     button.success:hover:not(:disabled) { background: #15803d; }
 
-    .color-picker-group { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-    .color-option {
+    .name-presets { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .preset-btn {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      padding: 7px 11px;
-      border-radius: 8px;
+      gap: 7px;
+      padding: 7px 12px;
+      border-radius: 9px;
       border: 2px solid transparent;
       background: #f8fafc;
       color: #0f172a;
-      font-size: 0.85rem;
-      font-weight: 600;
+      font-size: 0.88rem;
+      font-weight: 700;
       cursor: pointer;
     }
-    .color-option.active {
+    .preset-btn.active {
       border-color: #0f172a;
       background: #e2e8f0;
     }
-    .color-option.taken {
+    .preset-btn.used {
       opacity: 0.42;
       cursor: not-allowed;
       text-decoration: line-through;
@@ -131,7 +132,18 @@
       width: 14px;
       height: 14px;
       border-radius: 50%;
-      border: 1px solid rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(0, 0, 0, 0.25);
+    }
+    .color-preview {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      font-size: 0.88rem;
+      font-weight: 700;
     }
 
     .calendar-grid {
@@ -179,6 +191,10 @@
       color: #991b1b;
       font-weight: 700;
     }
+    .day-cell-btn.friday-note {
+      background: #f1f5f9;
+      color: #64748b;
+    }
     .day-cell-btn.blocked-ART { background: #dbeafe; border-color: #3b82f6; color: #1e3a8a; font-weight: 700; }
     .day-cell-btn.blocked-ENF { background: #fce7f3; border-color: #ec4899; color: #831843; font-weight: 700; }
     .day-cell-btn.blocked-IMP { background: #f3e8ff; border-color: #a855f7; color: #581c87; font-weight: 700; }
@@ -194,6 +210,7 @@
       background: #fff;
     }
     .cal-cell.uncovered { background: #f8fafc; color: #94a3b8; border-style: dashed; }
+    .cal-cell.friday-second { background: #f1f5f9; color: #64748b; border-style: dotted; }
     .cal-top { display: flex; justify-content: space-between; align-items: center; gap: 4px; }
     .cal-date { font-weight: 800; font-size: 0.85rem; }
     .badge {
@@ -249,7 +266,7 @@
   <div class="intro-card">
     <div class="intro-top">
       <div>
-        <h1 style="margin-bottom: 4px;">🏥 Esquema de Guardias — Residentes</h1>
+        <h1 style="margin-bottom: 4px;">🏥 Esquema de Guardias — 1.º Año</h1>
         <p class="hospital-sub" style="margin: 0;"><strong>Hospital Provincial de Neuquén</strong> · Residentes de Salud Mental Interdisciplinaria y Psiquiatría</p>
       </div>
       <a class="quick-link-btn" href="https://alanfebrerogutierrez.github.io/GuardiasResis/" target="_blank" rel="noopener">
@@ -258,14 +275,14 @@
     </div>
 
     <p class="intro-text">
-      Herramienta de organización rápida y fácil uso para armar los esquemas de guardias de 12 hs (08:00–20:00 y 20:01–07:59) con descanso de 48 hs, cubriendo feriados y contemplando artículos, enfermedad o imprevistos.
+      Esquema de guardias de 12 hs para <strong>1.º año</strong> (20 días cubiertos del 16 al 15, sin viernes, que corresponden a 2.º año), priorizando feriados, fines de semana y luego días de semana, con descanso de 48 hs.
     </p>
 
     <div class="features-mini">
-      <span class="feat-tag">⚡ Organización rápida</span>
-      <span class="feat-tag">🎨 5 colores sin repetir + degradé diario</span>
-      <span class="feat-tag">📅 Feriados (se cubren) y finde/semana</span>
-      <span class="feat-tag">📝 Artículos (máx. 2) / Enf / Imprevisto X</span>
+      <span class="feat-tag">1° Feriados · 2° Findes · 3° Semana</span>
+      <span class="feat-tag">Viernes: 2.º año (no se asignan aquí)</span>
+      <span class="feat-tag">Colores fijos por residente</span>
+      <span class="feat-tag">ART (máx. 2) / ENF / IMP</span>
       <span class="feat-tag">📥 Descarga en imagen PNG</span>
     </div>
 
@@ -276,7 +293,7 @@
 
   <!-- PASO 0: PERÍODO -->
   <div class="card" id="step-period">
-    <h2>1. Período</h2>
+    <h2>1. Período (del 16 al 15)</h2>
     <div class="row">
       <div>
         <label>Mes de inicio (día 16):</label>
@@ -326,25 +343,34 @@
   <div class="card" id="step-holidays" style="display:none;">
     <h2>2. Feriados del Período</h2>
     <p style="margin: 0 0 8px; font-size: 0.9rem;">
-      Marcá los días que sean <strong>feriado</strong> (computan como fin de semana/feriado y se cubren con guardias):
+      Marcá los días que sean <strong>feriado</strong> (se cubren de forma prioritaria por 1.º año; los viernes son de 2.º año):
     </p>
     <div id="holiday-calendar-grid"></div>
     <div class="row" style="margin-top: 15px;">
-      <button type="button" onclick="confirmHolidays()">Continuar a Carga de Residentes</button>
+      <button type="button" onclick="confirmHolidays()">Continuar a Carga de Residentes (1.º Año)</button>
     </div>
   </div>
 
   <!-- PASO 2: RESIDENTES -->
   <div class="card" id="step-residents" style="display:none;">
-    <h2>3. Carga de Residentes (<span id="res-count">0</span>/5)</h2>
+    <h2>3. Carga de Residentes de 1.º Año (<span id="res-count">0</span>/5)</h2>
+
+    <div style="margin-bottom: 12px;">
+      <label>Tocá el nombre (color asignado automáticamente):</label>
+      <div class="name-presets" id="namePresets"></div>
+    </div>
+
     <div class="row">
       <div>
-        <label>1° Seleccioná un color (obligatorio y único):</label>
-        <div class="color-picker-group" id="colorPicker"></div>
+        <label>Nombre:</label>
+        <input type="text" id="resName" placeholder="Ej: Sofía" oninput="onNameInputChange()" />
       </div>
       <div>
-        <label>2° Nombre:</label>
-        <input type="text" id="resName" placeholder="Ej: Alan Febrero" />
+        <label>Color asignado:</label>
+        <div class="color-preview" id="assignedColorPreview">
+          <span class="swatch" id="previewSwatch" style="background:#cbd5e1"></span>
+          <span id="previewColorName">Elegí un nombre</span>
+        </div>
       </div>
       <div>
         <label>Motivo al marcar:</label>
@@ -354,17 +380,10 @@
           <option value="IMP">Imprevisto X</option>
         </select>
       </div>
-      <div>
-        <label>Viernes habituales:</label>
-        <select id="fridayRule">
-          <option value="allow">Disponible los viernes</option>
-          <option value="avoid">Evitar viernes</option>
-        </select>
-      </div>
     </div>
 
     <p style="margin: 14px 0 6px; font-size: 0.9rem;">
-      Calendario del período: tocá los días que <strong>NO puede hacer guardia</strong> según el motivo seleccionado (opcional):
+      Tocá los días que <strong>NO puede hacer guardia</strong> según el motivo seleccionado (opcional; los viernes no se asignan a 1.º año):
     </p>
     <div id="resident-calendar-grid"></div>
 
@@ -385,7 +404,7 @@
   <!-- PASO 3: RESULTADO -->
   <div class="card" id="step-result" style="display:none;">
     <div class="row" style="justify-content: space-between;">
-      <h2 id="result-title">Cronograma Final</h2>
+      <h2 id="result-title">Cronograma Final (1.º Año)</h2>
       <button type="button" class="success" id="btnDownloadPng" onclick="downloadScheduleImage()">📥 Descargar Imagen (PNG)</button>
     </div>
     <div id="solver-feedback"></div>
@@ -400,43 +419,75 @@
   const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
   const MESES_FULL = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
-  const PALETTE = [
-    { name: 'Rosado', hex: '#f472b6' },
-    { name: 'Violeta', hex: '#c084fc' },
-    { name: 'Verde', hex: '#4ade80' },
-    { name: 'Celeste', hex: '#38bdf8' },
-    { name: 'Naranja', hex: '#fb923c' }
+  const FIXED_RESIDENTS = [
+    { canonical: 'Sofía', colorName: 'Rosa', hex: '#f472b6', keys: ['sofia', 'sofi', 'so'] },
+    { canonical: 'Alan', colorName: 'Violeta', hex: '#c084fc', keys: ['alan'] },
+    { canonical: 'Iván', colorName: 'Naranja', hex: '#fb923c', keys: ['ivan', 'iván'] },
+    { canonical: 'Agustina', colorName: 'Celeste', hex: '#38bdf8', keys: ['agustina', 'agus'] },
+    { canonical: 'Julia', colorName: 'Verde', hex: '#4ade80', keys: ['julia', 'juli', 'ju'] }
   ];
 
-  let selectedColorHex = null;
   let periodDays = [];
   let residents = [];
   let currentBlocks = {};
   let lastSolution = null;
 
-  function renderColorPicker() {
-    const usedHexes = new Set(residents.map(r => r.color.toLowerCase()));
-    if (selectedColorHex && usedHexes.has(selectedColorHex.toLowerCase())) {
-      selectedColorHex = null;
-    }
+  function normalizeStr(s) {
+    return (s || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
 
-    const container = document.getElementById('colorPicker');
+  function matchFixedResident(name) {
+    const n = normalizeStr(name);
+    if (!n) return null;
+    for (const item of FIXED_RESIDENTS) {
+      if (item.keys.some(k => normalizeStr(k) === n || n.startsWith(normalizeStr(k) + ' '))) {
+        return item;
+      }
+    }
+    return null;
+  }
+
+  function getColorLabel(hex) {
+    const found = FIXED_RESIDENTS.find(p => p.hex.toLowerCase() === (hex || '').toLowerCase());
+    return found ? found.colorName : hex;
+  }
+
+  function renderNamePresetsAndColor() {
+    const usedHexes = new Set(residents.map(r => r.color.toLowerCase()));
+    const container = document.getElementById('namePresets');
+    const currentInput = document.getElementById('resName').value.trim();
+    const matched = matchFixedResident(currentInput);
+
     container.innerHTML = '';
-    PALETTE.forEach(item => {
+    FIXED_RESIDENTS.forEach(item => {
       const isTaken = usedHexes.has(item.hex.toLowerCase());
-      const isActive = selectedColorHex && selectedColorHex.toLowerCase() === item.hex.toLowerCase();
+      const isSelected = matched && matched.hex.toLowerCase() === item.hex.toLowerCase();
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.disabled = isTaken;
-      btn.className = 'color-option' + (isActive ? ' active' : '') + (isTaken ? ' taken' : '');
-      btn.innerHTML = `<span class="swatch" style="background:${item.hex}"></span>${item.name}${isTaken ? ' (usado)' : ''}`;
+      btn.className = 'preset-btn' + (isSelected ? ' active' : '') + (isTaken ? ' used' : '');
+      btn.innerHTML = `<span class="swatch" style="background:${item.hex}"></span>${item.canonical} (${item.colorName})${isTaken ? ' · ya cargado' : ''}`;
       btn.onclick = () => {
         if (isTaken) return;
-        selectedColorHex = item.hex;
-        renderColorPicker();
+        document.getElementById('resName').value = item.canonical;
+        onNameInputChange();
       };
       container.appendChild(btn);
     });
+
+    const swatch = document.getElementById('previewSwatch');
+    const label = document.getElementById('previewColorName');
+    if (matched) {
+      swatch.style.background = matched.hex;
+      label.innerText = `${matched.colorName} (asignado a ${matched.canonical})`;
+    } else {
+      swatch.style.background = '#cbd5e1';
+      label.innerText = 'Elegí Sofía, Alan, Iván, Agustina o Julia';
+    }
+  }
+
+  function onNameInputChange() {
+    renderNamePresetsAndColor();
   }
 
   function syncEndMonth() {
@@ -477,7 +528,6 @@
 
     residents = [];
     currentBlocks = {};
-    selectedColorHex = null;
     lastSolution = null;
 
     document.getElementById('step-holidays').style.display = 'block';
@@ -502,8 +552,12 @@
       let cls = 'day-cell-btn';
       if (day.isHoliday) cls += ' holiday';
       else if (day.isWeekend) cls += ' weekend';
+      else if (day.isFriday) cls += ' friday-note';
 
-      const tag = day.isHoliday ? 'FERIADO' : (day.isWeekend ? 'FinDe' : DIAS_SEMANA[day.dayOfWeek]);
+      const tag = day.isHoliday
+        ? 'FERIADO'
+        : (day.isWeekend ? 'FinDe' : (day.isFriday ? 'Vie (2.º)' : DIAS_SEMANA[day.dayOfWeek]));
+
       html += `<div class="${cls}" onclick="toggleHoliday(${idx})">
         <span>${day.label}</span>
         <small>${tag}</small>
@@ -521,7 +575,7 @@
 
   function confirmHolidays() {
     document.getElementById('step-residents').style.display = 'block';
-    renderColorPicker();
+    renderNamePresetsAndColor();
     renderResidentCalendarGrid();
     renderResidentsList();
     document.getElementById('step-residents').scrollIntoView({ behavior: 'smooth' });
@@ -545,8 +599,9 @@
       if (block) cls += ` blocked-${block}`;
       else if (day.isHoliday) cls += ' holiday';
       else if (day.isWeekend) cls += ' weekend';
+      else if (day.isFriday) cls += ' friday-note';
 
-      const subLabel = block || (day.isHoliday ? 'FER' : (day.isWeekend ? 'FinDe' : DIAS_SEMANA[day.dayOfWeek]));
+      const subLabel = block || (day.isHoliday ? 'FER' : (day.isWeekend ? 'FinDe' : (day.isFriday ? 'Vie (2.º)' : DIAS_SEMANA[day.dayOfWeek])));
       html += `<div class="${cls}" onclick="toggleDayBlock(${idx})">
         <span>${day.label}</span>
         <small>${subLabel}</small>
@@ -586,22 +641,25 @@
 
   function saveResident() {
     if (residents.length >= 5) {
-      alert('Ya cargaste los 5 residentes.');
-      return;
-    }
-    if (!selectedColorHex) {
-      alert('Seleccioná un color antes de guardar el residente.');
-      return;
-    }
-    const usedHexes = new Set(residents.map(r => r.color.toLowerCase()));
-    if (usedHexes.has(selectedColorHex.toLowerCase())) {
-      alert('Ese color ya fue asignado a otro residente. Elegí uno disponible.');
+      alert('Ya cargaste los 5 residentes de 1.º año.');
       return;
     }
 
-    const name = document.getElementById('resName').value.trim();
-    if (!name) {
-      alert('Ingresá un nombre.');
+    const rawName = document.getElementById('resName').value.trim();
+    if (!rawName) {
+      alert('Ingresá o seleccioná un nombre.');
+      return;
+    }
+
+    const matched = matchFixedResident(rawName);
+    if (!matched) {
+      alert('Usá uno de los nombres del equipo de 1.º año (Sofía, Alan, Iván, Agustina o Julia) para tomar su color asignado.');
+      return;
+    }
+
+    const usedHexes = new Set(residents.map(r => r.color.toLowerCase()));
+    if (usedHexes.has(matched.hex.toLowerCase())) {
+      alert(`${matched.canonical} ya está cargado.`);
       return;
     }
 
@@ -612,29 +670,22 @@
     }
 
     residents.push({
-      name,
-      color: selectedColorHex,
-      blocks: { ...currentBlocks },
-      avoidFriday: document.getElementById('fridayRule').value === 'avoid'
+      name: matched.canonical,
+      color: matched.hex,
+      blocks: { ...currentBlocks }
     });
 
     document.getElementById('resName').value = '';
     currentBlocks = {};
-    selectedColorHex = null;
-    renderColorPicker();
+    renderNamePresetsAndColor();
     renderResidentCalendarGrid();
     renderResidentsList();
   }
 
   function removeResident(idx) {
     residents.splice(idx, 1);
-    renderColorPicker();
+    renderNamePresetsAndColor();
     renderResidentsList();
-  }
-
-  function getColorLabel(hex) {
-    const found = PALETTE.find(p => p.hex.toLowerCase() === hex.toLowerCase());
-    return found ? found.name : hex;
   }
 
   function renderResidentsList() {
@@ -644,7 +695,7 @@
       container.innerHTML = '';
       return;
     }
-    let html = '<table><thead><tr><th>Residente</th><th>Color</th><th>Viernes</th><th>Bloqueos</th><th>Acción</th></tr></thead><tbody>';
+    let html = '<table><thead><tr><th>Residente (1.º año)</th><th>Color</th><th>Bloqueos</th><th>Acción</th></tr></thead><tbody>';
     residents.forEach((r, idx) => {
       const blocks = Object.entries(r.blocks).map(([ds, m]) => {
         const d = periodDays.find(x => x.dateStr === ds);
@@ -653,7 +704,6 @@
       html += `<tr>
         <td><strong>${r.name}</strong></td>
         <td><span class="color-dot" style="background:${r.color}"></span>${getColorLabel(r.color)}</td>
-        <td>${r.avoidFriday ? 'Evitar viernes' : 'Disponible'}</td>
         <td>${blocks.length ? blocks.join(', ') : 'Ninguno'}</td>
         <td><button type="button" class="danger" style="padding:4px 8px; font-size:0.8rem;" onclick="removeResident(${idx})">Quitar</button></td>
       </tr>`;
@@ -664,7 +714,7 @@
 
   function generateSchedule() {
     if (residents.length !== 5) {
-      alert('Cargá los 5 residentes para calcular el esquema.');
+      alert('Cargá los 5 residentes de 1.º año para calcular el esquema.');
       return;
     }
     if (!periodDays || periodDays.length === 0) {
@@ -673,40 +723,41 @@
     }
 
     const indexedDays = periodDays.map((d, i) => ({ ...d, idx: i }));
-    const holidays = indexedDays.filter(d => d.isHoliday);
-    const weekends = indexedDays.filter(d => d.isWeekend && !d.isHoliday);
-    const monToThu = indexedDays.filter(d => !d.isWeekend && !d.isHoliday && !d.isFriday);
-    const fridays = indexedDays.filter(d => d.isFriday && !d.isHoliday);
 
-    // Prioridad: feriados (se cubren) > fines de semana > lun-jue > viernes
-    const orderedDays = [...holidays, ...weekends, ...monToThu, ...fridays];
+    // Los viernes son de 2.º año: no se asignan en 1.º año
+    // Prioridad rígida: 1° Feriados, 2° Fines de semana (Sáb/Dom), 3° Días de semana (Lun-Jue)
+    const holidays = indexedDays.filter(d => d.isHoliday && !d.isFriday);
+    const weekends = indexedDays.filter(d => d.isWeekend && !d.isHoliday && !d.isFriday);
+    const weekdays = indexedDays.filter(d => !d.isWeekend && !d.isHoliday && !d.isFriday);
+
+    const orderedDays = [...holidays, ...weekends, ...weekdays];
     const top20 = orderedDays.slice(0, 20);
 
-    // 1° intento: 4 semana + 4 finde/feriado por residente en los 20 días prioritarios
-    let solved = solveExact40(top20, 4, 4, 4, 4, 500000);
+    // 1° intento: 4 finde/feriado + 4 semana por residente en los 20 días prioritarios
+    let solved = solveExact40(top20, 4, 4, 4, 4, 600000);
     if (solved) {
       lastSolution = { ...solved, mode: 'ideal' };
       renderResult(lastSolution);
       return;
     }
 
-    // 2° intento: completar con días de semana (hasta 5 de semana) en los 20 días prioritarios
-    solved = solveExact40(top20, 4, 5, 0, 4, 600000);
+    // 2° intento: mantener prioridad estricta completando cupos en días de semana (hasta 5 de semana)
+    solved = solveExact40(top20, 4, 5, 0, 4, 700000);
     if (solved) {
       lastSolution = { ...solved, mode: 'exception' };
       renderResult(lastSolution);
       return;
     }
 
-    // 3° intento: usar todos los días del período ordenados por prioridad con hasta 5 de semana
-    solved = solveExact40(orderedDays, 4, 5, 0, 3, 700000);
+    // 3° intento: usar todo el pool ordenado (feriados -> findes -> lun-jue) con hasta 5 de semana
+    solved = solveExact40(orderedDays, 4, 5, 0, 3, 800000);
     if (solved) {
       lastSolution = { ...solved, mode: 'exception' };
       renderResult(lastSolution);
       return;
     }
 
-    // 4° intento: asignación constructiva garantizada de 40 turnos (8 por residente) respetando bloqueos y descanso
+    // 4° intento: respaldo constructivo garantizado de 40 turnos (8 por residente) respetando prioridad y 48 hs
     solved = buildGuaranteed40(orderedDays);
     lastSolution = { ...solved, mode: 'exception' };
     renderResult(lastSolution);
@@ -759,14 +810,14 @@
 
       const candidates = [...state].sort((a, b) => {
         if (slot.isWknd) {
-          const needA = a.wkndCount < minWknd ? 0 : 1;
-          const needB = b.wkndCount < minWknd ? 0 : 1;
-          if (needA !== needB) return needA - needB;
+          const needWkndA = a.wkndCount < minWknd ? 0 : 1;
+          const needWkndB = b.wkndCount < minWknd ? 0 : 1;
+          if (needWkndA !== needWkndB) return needWkndA - needWkndB;
           if (a.wkndCount !== b.wkndCount) return a.wkndCount - b.wkndCount;
         } else {
-          const needA = a.wkdayCount < minWkday ? 0 : 1;
-          const needB = b.wkdayCount < minWkday ? 0 : 1;
-          if (needA !== needB) return needA - needB;
+          const needWkdayA = a.wkdayCount < minWkday ? 0 : 1;
+          const needWkdayB = b.wkdayCount < minWkday ? 0 : 1;
+          if (needWkdayA !== needWkdayB) return needWkdayA - needWkdayB;
           if (a.wkdayCount !== b.wkdayCount) return a.wkdayCount - b.wkdayCount;
         }
         return (a.wkndCount + a.wkdayCount) - (b.wkndCount + b.wkdayCount);
@@ -778,7 +829,6 @@
         if (slot.isWknd && resState.wkndCount >= maxWknd) continue;
         if (!slot.isWknd && resState.wkdayCount >= maxWkday) continue;
         if (resData.blocks[slot.day.dateStr]) continue;
-        if (slot.day.isFriday && resData.avoidFriday) continue;
         if (!canRest48Hours(resState, slot)) continue;
 
         if (slot.isWknd) resState.wkndCount++; else resState.wkdayCount++;
@@ -812,7 +862,6 @@
     return null;
   }
 
-  // Respaldo constructivo: asegura completar 40 turnos (8 por residente) cubriendo feriados/findes
   function buildGuaranteed40(orderedDays) {
     const selectedDays = orderedDays.slice(0, 20).sort((a, b) => a.idx - b.idx);
     const slots = [];
@@ -842,15 +891,14 @@
           return slot.isWknd ? (a.wkndCount - b.wkndCount) : (a.wkdayCount - b.wkdayCount);
         });
 
-      // Prioriza quien cumpla bloqueos, viernes y 48h; luego quien cumpla bloqueos y viernes; luego cualquier < 8 turnos
       let chosen =
         candidates.find(st => {
           const r = residents[st.id];
-          return !r.blocks[slot.day.dateStr] && !(slot.day.isFriday && r.avoidFriday) && canRest48Hours(st, slot);
+          return !r.blocks[slot.day.dateStr] && canRest48Hours(st, slot);
         }) ||
         candidates.find(st => {
           const r = residents[st.id];
-          return !r.blocks[slot.day.dateStr] && !(slot.day.isFriday && r.avoidFriday);
+          return !r.blocks[slot.day.dateStr];
         }) ||
         candidates[0];
 
@@ -888,8 +936,8 @@
 
     dlBtn.disabled = false;
     feedback.innerHTML = solution.mode === 'ideal'
-      ? `<div class="alert alert-success">✅ Esquema óptimo: 4 guardias de semana + 4 de fin de semana/feriado para cada residente, con descanso ≥ 48 hs y feriados cubiertos.</div>`
-      : `<div class="alert alert-warn">⚠️ Esquema ajustado: se cubrieron los 20 días (incluyendo feriados marcados) con 8 guardias de 12 hs por residente.</div>`;
+      ? `<div class="alert alert-success">✅ Esquema óptimo (1.º año): 20 días cubiertos con prioridad feriados → finde → semana (sin viernes), descanso ≥ 48 hs y 8 turnos de 12 hs por residente.</div>`
+      : `<div class="alert alert-warn">⚠️ Esquema ajustado (1.º año): 20 días cubiertos con prioridad feriados → finde → semana (sin viernes) y 8 turnos de 12 hs por residente.</div>`;
 
     let html = '<div class="calendar-grid">';
     ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].forEach(h => {
@@ -902,6 +950,17 @@
     periodDays.forEach(day => {
       const assigned = solution.mapByDate[day.dateStr];
       const tag = day.isHoliday ? 'FERIADO' : (day.isWeekend ? 'FINDE' : '');
+
+      if (day.isFriday && !assigned) {
+        html += `<div class="cal-cell friday-second">
+          <div class="cal-top">
+            <span class="cal-date">${day.label}</span>
+            <span class="badge" style="background:#64748b;">2.º AÑO</span>
+          </div>
+          <div style="font-size:0.75rem; text-align:center; margin-bottom:12px;">Viernes (2.º año)</div>
+        </div>`;
+        return;
+      }
 
       if (assigned && assigned.DAY && assigned.NIGHT) {
         const dRes = assigned.DAY;
@@ -930,7 +989,7 @@
             <span class="cal-date">${day.label}</span>
             ${tag ? `<span class="badge" style="background:#94a3b8;">${tag}</span>` : ''}
           </div>
-          <div style="font-size:0.75rem; text-align:center; margin-bottom:12px;">Sin guardia</div>
+          <div style="font-size:0.75rem; text-align:center; margin-bottom:12px;">Sin guardia (1.º)</div>
         </div>`;
       }
     });
@@ -939,7 +998,7 @@
     calOut.innerHTML = html;
 
     let tbl = `<table><thead><tr>
-      <th>Residente</th><th>Semana (12h)</th><th>Fin de Semana / Feriado (12h)</th>
+      <th>Residente (1.º año)</th><th>Semana (12h)</th><th>Fin de Semana / Feriado (12h)</th>
       <th>Diurnas</th><th>Nocturnas</th><th>Total Horas</th>
     </tr></thead><tbody>`;
 
@@ -1013,7 +1072,7 @@
 
       ctx.fillStyle = '#0f172a';
       ctx.font = '800 34px system-ui, -apple-system, sans-serif';
-      ctx.fillText('ESQUEMA DE GUARDIAS — RESIDENTES', marginX, 54);
+      ctx.fillText('ESQUEMA DE GUARDIAS — 1.º AÑO', marginX, 54);
 
       ctx.fillStyle = '#0284c7';
       ctx.font = '700 22px system-ui, -apple-system, sans-serif';
@@ -1021,7 +1080,7 @@
 
       const firstD = periodDays[0].dateObj;
       const lastD = periodDays[periodDays.length - 1].dateObj;
-      const rangeLabel = `Período: ${firstD.getDate()} de ${MESES_FULL[firstD.getMonth()]} al ${lastD.getDate()} de ${MESES_FULL[lastD.getMonth()]} ${lastD.getFullYear()}`;
+      const rangeLabel = `Período: ${firstD.getDate()} de ${MESES_FULL[firstD.getMonth()]} al ${lastD.getDate()} de ${MESES_FULL[lastD.getMonth()]} ${lastD.getFullYear()} (Viernes: 2.º año)`;
       ctx.fillStyle = '#475569';
       ctx.font = '600 18px system-ui, -apple-system, sans-serif';
       ctx.fillText(rangeLabel, marginX, 118);
@@ -1101,6 +1160,15 @@
           ctx.font = '600 11px system-ui, -apple-system, sans-serif';
           ctx.fillText(`08–20: ${dRes.name} · 20–08: ${nRes.name}`, x + cellW / 2, y + 88);
           ctx.textAlign = 'left';
+        } else if (day.isFriday) {
+          drawRoundRect(ctx, x, y, cellW, cellH, 12, '#e2e8f0', '#cbd5e1');
+          ctx.fillStyle = '#64748b';
+          ctx.font = '700 14px system-ui, -apple-system, sans-serif';
+          ctx.fillText(day.label, x + 10, y + 22);
+          ctx.font = '600 12px system-ui, -apple-system, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('Viernes (2.º año)', x + cellW / 2, y + cellH / 2 + 6);
+          ctx.textAlign = 'left';
         } else {
           drawRoundRect(ctx, x, y, cellW, cellH, 12, '#f1f5f9', '#cbd5e1');
           ctx.fillStyle = '#64748b';
@@ -1108,7 +1176,7 @@
           ctx.fillText(day.label, x + 10, y + 22);
           ctx.font = '600 12px system-ui, -apple-system, sans-serif';
           ctx.textAlign = 'center';
-          ctx.fillText('Sin guardia', x + cellW / 2, y + cellH / 2 + 6);
+          ctx.fillText('Sin guardia (1.º)', x + cellW / 2, y + cellH / 2 + 6);
           ctx.textAlign = 'left';
         }
       });
@@ -1116,7 +1184,7 @@
       drawRoundRect(ctx, marginX, summaryTop, W - marginX * 2, summaryH, 14, '#ffffff', '#cbd5e1');
       ctx.fillStyle = '#0f172a';
       ctx.font = '800 18px system-ui, -apple-system, sans-serif';
-      ctx.fillText('RESUMEN DE GUARDIAS (8 TURNOS DE 12 HS POR RESIDENTE)', marginX + 20, summaryTop + 32);
+      ctx.fillText('RESUMEN DE GUARDIAS — 1.º AÑO (8 TURNOS DE 12 HS POR RESIDENTE)', marginX + 20, summaryTop + 32);
 
       ctx.font = '600 15px system-ui, -apple-system, sans-serif';
       lastSolution.stats.forEach((st, i) => {
@@ -1137,7 +1205,7 @@
 
       const dataUrl = canvas.toDataURL('image/png');
       const link = document.createElement('a');
-      link.download = `guardias-hpn-${periodDays[0].dateStr}-a-${periodDays[periodDays.length - 1].dateStr}.png`;
+      link.download = `guardias-1ro-hpn-${periodDays[0].dateStr}-a-${periodDays[periodDays.length - 1].dateStr}.png`;
       link.href = dataUrl;
       document.body.appendChild(link);
       link.click();
@@ -1147,7 +1215,7 @@
     }
   }
 
-  renderColorPicker();
+  renderNamePresetsAndColor();
 </script>
 </body>
 </html>
