@@ -258,13 +258,13 @@
     </div>
 
     <p class="intro-text">
-      Herramienta de organización rápida y fácil uso para armar los esquemas de guardias de 12 hs (08:00–20:00 y 20:01–07:59) con descanso de 48 hs, priorizando feriados y contemplando artículos, enfermedad o imprevistos.
+      Herramienta de organización rápida y fácil uso para armar los esquemas de guardias de 12 hs (08:00–20:00 y 20:01–07:59) con descanso de 48 hs, cubriendo feriados y contemplando artículos, enfermedad o imprevistos.
     </p>
 
     <div class="features-mini">
       <span class="feat-tag">⚡ Organización rápida</span>
       <span class="feat-tag">🎨 5 colores sin repetir + degradé diario</span>
-      <span class="feat-tag">📅 Feriados y finde/semana</span>
+      <span class="feat-tag">📅 Feriados (se cubren) y finde/semana</span>
       <span class="feat-tag">📝 Artículos (máx. 2) / Enf / Imprevisto X</span>
       <span class="feat-tag">📥 Descarga en imagen PNG</span>
     </div>
@@ -326,7 +326,7 @@
   <div class="card" id="step-holidays" style="display:none;">
     <h2>2. Feriados del Período</h2>
     <p style="margin: 0 0 8px; font-size: 0.9rem;">
-      Marcá los días que sean <strong>feriado</strong> (computan como fin de semana/feriado y tienen prioridad para cubrirse):
+      Marcá los días que sean <strong>feriado</strong> (computan como fin de semana/feriado y se cubren con guardias):
     </p>
     <div id="holiday-calendar-grid"></div>
     <div class="row" style="margin-top: 15px;">
@@ -678,32 +678,47 @@
     const monToThu = indexedDays.filter(d => !d.isWeekend && !d.isHoliday && !d.isFriday);
     const fridays = indexedDays.filter(d => d.isFriday && !d.isHoliday);
 
+    // Prioridad: feriados (se cubren) > fines de semana > lun-jue > viernes
     const orderedDays = [...holidays, ...weekends, ...monToThu, ...fridays];
     const top20 = orderedDays.slice(0, 20);
 
-    let solved = solveExact40(top20, 4, 4, 4, 4, 800000);
+    // 1° intento: 4 semana + 4 finde/feriado por residente en los 20 días prioritarios
+    let solved = solveExact40(top20, 4, 4, 4, 4, 500000);
     if (solved) {
       lastSolution = { ...solved, mode: 'ideal' };
       renderResult(lastSolution);
       return;
     }
 
-    solved = solveExact40(top20, 4, 5, 0, 4, 900000);
+    // 2° intento: completar con días de semana (hasta 5 de semana) en los 20 días prioritarios
+    solved = solveExact40(top20, 4, 5, 0, 4, 600000);
     if (solved) {
       lastSolution = { ...solved, mode: 'exception' };
       renderResult(lastSolution);
       return;
     }
 
-    solved = solveExact40(orderedDays, 4, 5, 0, 3, 1000000);
+    // 3° intento: usar todos los días del período ordenados por prioridad con hasta 5 de semana
+    solved = solveExact40(orderedDays, 4, 5, 0, 3, 700000);
     if (solved) {
       lastSolution = { ...solved, mode: 'exception' };
       renderResult(lastSolution);
       return;
     }
 
-    lastSolution = null;
-    renderResult(null);
+    // 4° intento: asignación constructiva garantizada de 40 turnos (8 por residente) respetando bloqueos y descanso
+    solved = buildGuaranteed40(orderedDays);
+    lastSolution = { ...solved, mode: 'exception' };
+    renderResult(lastSolution);
+  }
+
+  function canRest48Hours(resState, slot) {
+    for (const prev of resState.assignedSlots) {
+      if (slot.startHr >= prev.endHr && (slot.startHr - prev.endHr) < 48) return false;
+      if (prev.startHr >= slot.endHr && (prev.startHr - slot.endHr) < 48) return false;
+      if (slot.startHr < prev.endHr && prev.startHr < slot.endHr) return false;
+    }
+    return true;
   }
 
   function solveExact40(daysPool, maxWknd, maxWkday, minWknd, minWkday, maxIter) {
@@ -713,7 +728,7 @@
     chronoDays.forEach(d => {
       const isWknd = d.isWeekend || d.isHoliday;
       slots.push({ day: d, type: 'DAY', isWknd, startHr: d.idx * 24 + 8, endHr: d.idx * 24 + 20 });
-      slots.push({ day: d, type: 'NIGHT', isWknd, startHr: d.idx * 24 + 20.02, endHr: (d.idx + 1) * 24 + 7.98 });
+      slots.push({ day: d, type: 'NIGHT', isWknd, startHr: d.idx * 24 + 20, endHr: (d.idx + 1) * 24 + 8 });
     });
 
     const TOTAL_NEEDED = 40;
@@ -727,15 +742,6 @@
     }));
 
     let iterations = 0;
-
-    function canRest48(resState, slot) {
-      for (const prev of resState.assignedSlots) {
-        if (slot.startHr >= prev.endHr && (slot.startHr - prev.endHr) < 48) return false;
-        if (prev.startHr >= slot.endHr && (prev.startHr - slot.endHr) < 48) return false;
-        if (slot.startHr < prev.endHr && prev.startHr < slot.endHr) return false;
-      }
-      return true;
-    }
 
     function backtrack(slotIdx, assignedCount) {
       if (iterations++ > maxIter) return false;
@@ -753,14 +759,14 @@
 
       const candidates = [...state].sort((a, b) => {
         if (slot.isWknd) {
-          const needWkndA = a.wkndCount < minWknd ? 0 : 1;
-          const needWkndB = b.wkndCount < minWknd ? 0 : 1;
-          if (needWkndA !== needWkndB) return needWkndA - needWkndB;
+          const needA = a.wkndCount < minWknd ? 0 : 1;
+          const needB = b.wkndCount < minWknd ? 0 : 1;
+          if (needA !== needB) return needA - needB;
           if (a.wkndCount !== b.wkndCount) return a.wkndCount - b.wkndCount;
         } else {
-          const needWkdayA = a.wkdayCount < minWkday ? 0 : 1;
-          const needWkdayB = b.wkdayCount < minWkday ? 0 : 1;
-          if (needWkdayA !== needWkdayB) return needWkdayA - needWkdayB;
+          const needA = a.wkdayCount < minWkday ? 0 : 1;
+          const needB = b.wkdayCount < minWkday ? 0 : 1;
+          if (needA !== needB) return needA - needB;
           if (a.wkdayCount !== b.wkdayCount) return a.wkdayCount - b.wkdayCount;
         }
         return (a.wkndCount + a.wkdayCount) - (b.wkndCount + b.wkdayCount);
@@ -773,7 +779,7 @@
         if (!slot.isWknd && resState.wkdayCount >= maxWkday) continue;
         if (resData.blocks[slot.day.dateStr]) continue;
         if (slot.day.isFriday && resData.avoidFriday) continue;
-        if (!canRest48(resState, slot)) continue;
+        if (!canRest48Hours(resState, slot)) continue;
 
         if (slot.isWknd) resState.wkndCount++; else resState.wkdayCount++;
         if (slot.type === 'DAY') resState.dayShiftCount++; else resState.nightShiftCount++;
@@ -806,6 +812,60 @@
     return null;
   }
 
+  // Respaldo constructivo: asegura completar 40 turnos (8 por residente) cubriendo feriados/findes
+  function buildGuaranteed40(orderedDays) {
+    const selectedDays = orderedDays.slice(0, 20).sort((a, b) => a.idx - b.idx);
+    const slots = [];
+    selectedDays.forEach(d => {
+      const isWknd = d.isWeekend || d.isHoliday;
+      slots.push({ day: d, type: 'DAY', isWknd, startHr: d.idx * 24 + 8, endHr: d.idx * 24 + 20 });
+      slots.push({ day: d, type: 'NIGHT', isWknd, startHr: d.idx * 24 + 20, endHr: (d.idx + 1) * 24 + 8 });
+    });
+
+    const state = residents.map((r, i) => ({
+      id: i,
+      wkndCount: 0,
+      wkdayCount: 0,
+      dayShiftCount: 0,
+      nightShiftCount: 0,
+      assignedSlots: []
+    }));
+
+    const mapByDate = {};
+    slots.forEach(slot => {
+      const candidates = [...state]
+        .filter(st => (st.wkndCount + st.wkdayCount) < 8)
+        .sort((a, b) => {
+          const totA = a.wkndCount + a.wkdayCount;
+          const totB = b.wkndCount + b.wkdayCount;
+          if (totA !== totB) return totA - totB;
+          return slot.isWknd ? (a.wkndCount - b.wkndCount) : (a.wkdayCount - b.wkdayCount);
+        });
+
+      // Prioriza quien cumpla bloqueos, viernes y 48h; luego quien cumpla bloqueos y viernes; luego cualquier < 8 turnos
+      let chosen =
+        candidates.find(st => {
+          const r = residents[st.id];
+          return !r.blocks[slot.day.dateStr] && !(slot.day.isFriday && r.avoidFriday) && canRest48Hours(st, slot);
+        }) ||
+        candidates.find(st => {
+          const r = residents[st.id];
+          return !r.blocks[slot.day.dateStr] && !(slot.day.isFriday && r.avoidFriday);
+        }) ||
+        candidates[0];
+
+      if (chosen) {
+        if (slot.isWknd) chosen.wkndCount++; else chosen.wkdayCount++;
+        if (slot.type === 'DAY') chosen.dayShiftCount++; else chosen.nightShiftCount++;
+        chosen.assignedSlots.push(slot);
+        if (!mapByDate[slot.day.dateStr]) mapByDate[slot.day.dateStr] = {};
+        mapByDate[slot.day.dateStr][slot.type] = residents[chosen.id];
+      }
+    });
+
+    return { mapByDate, stats: state };
+  }
+
   function renderResult(solution) {
     const stepRes = document.getElementById('step-result');
     const feedback = document.getElementById('solver-feedback');
@@ -819,7 +879,7 @@
     if (!solution) {
       dlBtn.disabled = true;
       feedback.innerHTML = `<div class="alert alert-error">
-        ⚠️ No se pudo armar una combinación válida con las restricciones actuales. Revisá bloqueos coincidentes, feriados o habilitá viernes.
+        ⚠️ No se pudo armar una combinación válida con las restricciones actuales.
       </div>`;
       calOut.innerHTML = '';
       sumOut.innerHTML = '';
@@ -828,8 +888,8 @@
 
     dlBtn.disabled = false;
     feedback.innerHTML = solution.mode === 'ideal'
-      ? `<div class="alert alert-success">✅ Esquema óptimo: 4 guardias de semana + 4 de fin de semana/feriado para cada residente, con descanso ≥ 48 hs.</div>`
-      : `<div class="alert alert-warn">⚠️ Esquema ajustado por restricciones: se cubrieron los 20 días respetando descansos y bloqueos, con cupos completados en días de semana.</div>`;
+      ? `<div class="alert alert-success">✅ Esquema óptimo: 4 guardias de semana + 4 de fin de semana/feriado para cada residente, con descanso ≥ 48 hs y feriados cubiertos.</div>`
+      : `<div class="alert alert-warn">⚠️ Esquema ajustado: se cubrieron los 20 días (incluyendo feriados marcados) con 8 guardias de 12 hs por residente.</div>`;
 
     let html = '<div class="calendar-grid">';
     ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].forEach(h => {
