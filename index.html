@@ -291,14 +291,14 @@
           <option value="7">Agosto</option>
           <option value="8">Septiembre</option>
           <option value="9">Octubre</option>
-          <option value="10" selected>Noviembre</option>
-          <option value="11">Diciembre</option>
+          <option value="10">Noviembre</option>
+          <option value="11" selected>Diciembre</option>
         </select>
       </div>
       <div>
         <label>Mes de cierre (día 15):</label>
         <select id="endMonth">
-          <option value="0">Enero</option>
+          <option value="0" selected>Enero</option>
           <option value="1">Febrero</option>
           <option value="2">Marzo</option>
           <option value="3">Abril</option>
@@ -309,7 +309,7 @@
           <option value="8">Septiembre</option>
           <option value="9">Octubre</option>
           <option value="10">Noviembre</option>
-          <option value="11" selected>Diciembre</option>
+          <option value="11">Diciembre</option>
         </select>
       </div>
       <div>
@@ -674,28 +674,24 @@
     const monToThu = indexedDays.filter(d => !d.isWeekend && !d.isHoliday && !d.isFriday);
     const fridays = indexedDays.filter(d => d.isFriday && !d.isHoliday);
 
-    // Prioriza feriados > fines de semana > días de semana (lun-jue) > viernes
     const orderedDays = [...holidays, ...weekends, ...monToThu, ...fridays];
-
-    // 1° intento: objetivo ideal 4 semana + 4 finde/feriado por residente sobre los 20 días prioritarios
     const top20 = orderedDays.slice(0, 20);
-    let solved = solveExact40(top20, 4, 4, 4, 4, 300000);
+
+    let solved = solveExact40(top20, 4, 4, 4, 4, 600000);
     if (solved) {
       lastSolution = { ...solved, mode: 'ideal' };
       renderResult(lastSolution);
       return;
     }
 
-    // 2° intento: completar con días de semana si faltan findees/feriados o hay bloqueos (hasta 5 de semana)
-    solved = solveExact40(top20, 4, 5, 0, 4, 350000);
+    solved = solveExact40(top20, 4, 5, 0, 4, 700000);
     if (solved) {
       lastSolution = { ...solved, mode: 'exception' };
       renderResult(lastSolution);
       return;
     }
 
-    // 3° intento: usar todo el período ordenado por prioridad si los 20 primeros tuvieron demasiados bloqueos
-    solved = solveExact40(orderedDays, 4, 5, 0, 3, 450000);
+    solved = solveExact40(orderedDays, 4, 5, 0, 3, 800000);
     if (solved) {
       lastSolution = { ...solved, mode: 'exception' };
       renderResult(lastSolution);
@@ -707,7 +703,6 @@
   }
 
   function solveExact40(daysPool, maxWknd, maxWkday, minWknd, minWkday, maxIter) {
-    // Ordenamos cronológicamente para verificar descanso de 48h de forma natural y limpia
     const chronoDays = [...daysPool].sort((a, b) => a.idx - b.idx);
 
     const slots = [];
@@ -753,10 +748,18 @@
       const remainingNeeded = TOTAL_NEEDED - assignedCount;
 
       const candidates = [...state].sort((a, b) => {
-        const totA = a.wkndCount + a.wkdayCount;
-        const totB = b.wkndCount + b.wkdayCount;
-        if (totA !== totB) return totA - totB;
-        return slot.isWknd ? (a.wkndCount - b.wkndCount) : (a.wkdayCount - b.wkdayCount);
+        if (slot.isWknd) {
+          const needWkndA = a.wkndCount < minWknd ? 0 : 1;
+          const needWkndB = b.wkndCount < minWknd ? 0 : 1;
+          if (needWkndA !== needWkndB) return needWkndA - needWkndB;
+          if (a.wkndCount !== b.wkndCount) return a.wkndCount - b.wkndCount;
+        } else {
+          const needWkdayA = a.wkdayCount < minWkday ? 0 : 1;
+          const needWkdayB = b.wkdayCount < minWkday ? 0 : 1;
+          if (needWkdayA !== needWkdayB) return needWkdayA - needWkdayB;
+          if (a.wkdayCount !== b.wkdayCount) return a.wkdayCount - b.wkdayCount;
+        }
+        return (a.wkndCount + a.wkdayCount) - (b.wkndCount + b.wkdayCount);
       });
 
       for (const resState of candidates) {
