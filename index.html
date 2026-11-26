@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Esquema de Guardias - Hospital Provincial de Neuquén</title>
+  <style>
+    :root {
+      --bg: #f1f5f9;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --primary: #0284c7;
+      --primary-hover: #0369a1;
+      --border: #cbd5e1;
+      --weekend: #fef3c7;
+      --holiday: #fee2e2;
+    }
+    * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+    body { background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+    .container { max-width: 1140px; margin: 0 auto; }
+    h1, h2, h3 { margin-top: 0; }
+    .hospital-sub { color: var(--muted); font-size: 0.95rem; margin-top: -10px; margin-bottom: 20px; }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+    }
+    .row { display: flex; gap: 15px; flex-wrap: wrap; align-items: center; }
+    label { font-weight: 600; font-size: 0.88rem; display: block; margin-bottom: 4px; }
+    input, select, button {
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-size: 0.95rem;
+    }
+    button {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.18s;
+    }
+    button:hover { background: var(--primary-hover); }
+    button.secondary { background: #475569; }
+    button.secondary:hover { background: #334155; }
+    button.danger { background: #dc2626; }
+    button.success { background: #16a34a; }
+    button.success:hover { background: #15803d; }
+
+    /* Grilla selección de días */
+    .days-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+      gap: 6px;
+      margin-top: 12px;
+    }
+    .day-chip {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px;
+      text-align: center;
+      cursor: pointer;
+      font-size: 0.78rem;
+      user-select: none;
+      background: #fff;
+    }
+    .day-chip.weekend { background: var(--weekend); border-color: #f59e0b; }
+    .day-chip.holiday { background: var(--holiday); border-color: #ef4444; font-weight: 700; }
+    .day-chip.blocked-ART { background: #dbeafe; border-color: #3b82f6; color: #1e3a8a; }
+    .day-chip.blocked-ENF { background: #fce7f3; border-color: #ec4899; color: #831843; }
+    .day-chip.blocked-IMP { background: #f3e8ff; border-color: #a855f7; color: #581c87; }
+
+    /* Calendario en pantalla */
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 10px;
+      margin-top: 15px;
+    }
+    .cal-header {
+      text-align: center;
+      font-weight: 700;
+      padding: 8px;
+      background: #e2e8f0;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      color: #334155;
+    }
+    .cal-cell {
+      min-height: 112px;
+      border: 1px solid rgba(15, 23, 42, 0.14);
+      border-radius: 12px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background: #fff;
+    }
+    .cal-cell.empty { background: transparent; border: none; }
+    .cal-cell.uncovered { background: #f8fafc; color: #94a3b8; border-style: dashed; }
+    .cal-top { display: flex; justify-content: space-between; align-items: center; gap: 4px; }
+    .cal-date { font-weight: 800; font-size: 0.85rem; }
+    .badge {
+      font-size: 0.62rem;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.78);
+      color: #fff;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+    .shared-pill {
+      display: inline-block;
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: #0f172a;
+      background: rgba(255, 255, 255, 0.88);
+      border-radius: 999px;
+      padding: 1px 6px;
+      margin-bottom: 4px;
+    }
+    .guard-box {
+      text-align: center;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 8px;
+      padding: 6px 4px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+    }
+    .guard-names {
+      font-weight: 800;
+      font-size: 0.92rem;
+      color: #0f172a;
+      line-height: 1.2;
+    }
+    .shift-times {
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: #475569;
+      margin-top: 2px;
+    }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 0.9rem; }
+    th, td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
+    th { background: #f1f5f9; }
+    .color-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 6px; border: 1px solid rgba(0,0,0,0.2); }
+    .alert { padding: 12px 14px; border-radius: 10px; margin-bottom: 15px; font-weight: 500; }
+    .alert-error { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+    .alert-success { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>🏥 Esquema de Guardias — Residentes</h1>
+  <p class="hospital-sub"><strong>Hospital Provincial de Neuquén</strong> · Período del 15 al 16 · Turnos de 12 hs (08:00–20:00 y 20:01–07:59)</p>
+
+  <!-- PASO 0: PERÍODO Y FERIADOS -->
+  <div class="card" id="step-period">
+    <h2>1. Período y Feriados</h2>
+    <div class="row">
+      <div>
+        <label>Mes de inicio (día 15):</label>
+        <select id="startMonth">
+          <option value="0">Enero</option><option value="1">Febrero</option>
+          <option value="2">Marzo</option><option value="3">Abril</option>
+          <option value="4">Mayo</option><option value="5">Junio</option>
+          <option value="6">Julio</option><option value="7">Agosto</option>
+          <option value="8">Septiembre</option><option value="9">Octubre</option>
+          <option value="10">Noviembre</option><option value="11" selected>Diciembre</option>
+        </select>
+      </div>
+      <div>
+        <label>Año:</label>
+        <input type="number" id="startYear" value="2026" style="width: 100px;" />
+      </div>
+      <div style="align-self: flex-end;">
+        <button onclick="initPeriod()">Generar Período (15 al 16)</button>
+      </div>
+    </div>
+
+    <div id="holiday-selector-area" style="display:none; margin-top: 16px;">
+      <p style="margin-bottom: 6px; font-size: 0.9rem;">
+        Tocá los días <strong>FERIADO</strong> (se computan como Fin de Semana y tienen prioridad para cubrir):
+      </p>
+      <div class="days-grid" id="holiday-grid"></div>
+    </div>
+  </div>
+
+  <!-- PASO 1: RESIDENTES -->
+  <div class="card" id="step-residents" style="display:none;">
+    <h2>2. Carga de Residentes (<span id="res-count">0</span>/5)</h2>
+    <div class="row">
+      <div>
+        <label>Nombre:</label>
+        <input type="text" id="resName" placeholder="Ej: Julia" />
+      </div>
+      <div>
+        <label>Color:</label>
+        <input type="color" id="resColor" value="#38bdf8" style="height: 38px; width: 64px; padding: 2px;" />
+      </div>
+      <div>
+        <label>Motivo al marcar:</label>
+        <select id="blockType">
+          <option value="ART">Artículo (ART)</option>
+          <option value="ENF">Enfermedad (ENF)</option>
+          <option value="IMP">Imprevisto X (IMP)</option>
+        </select>
+      </div>
+      <div>
+        <label>Viernes habituales:</label>
+        <select id="fridayRule">
+          <option value="avoid">Evitar viernes (libre habitual)</option>
+          <option value="allow">Disponible los viernes</option>
+        </select>
+      </div>
+    </div>
+
+    <p style="margin: 12px 0 6px; font-size: 0.9rem;">
+      Marcá los días que <strong>NO puede hacer guardia</strong> (Art / Enf / Imprevisto X):
+    </p>
+    <div class="days-grid" id="resident-days-grid"></div>
+
+    <div class="row" style="margin-top: 15px;">
+      <button onclick="saveResident()">Guardar Residente</button>
+      <button class="secondary" onclick="clearCurrentGrid()">Limpiar marcas</button>
+    </div>
+
+    <div id="residents-list-container" style="margin-top: 18px;"></div>
+
+    <div style="margin-top: 18px; border-top: 1px solid var(--border); padding-top: 15px;">
+      <button class="success" style="font-size: 1rem; padding: 11px 18px;" onclick="generateSchedule()">
+        ⚡ Calcular Esquema Óptimo (20 días / 40 turnos)
+      </button>
+    </div>
+  </div>
+
+  <!-- PASO 2: CALENDARIO Y DESCARGA DE IMAGEN -->
+  <div class="card" id="step-result" style="display:none;">
+    <div class="row" style="justify-content: space-between;">
+      <h2 id="result-title">Cronograma Final</h2>
+      <button class="success" onclick="downloadScheduleImage()">📥 Descargar Imagen (PNG)</button>
+    </div>
+    <div id="solver-feedback"></div>
+    <div id="calendar-output"></div>
+    <h3 style="margin-top: 24px;">Resumen por Residente</h3>
+    <div id="summary-table"></div>
+  </div>
+</div>
+
+<script>
+  const DIAS_SEMANA = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  const MESES_FULL = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  const DEFAULT_COLORS = ['#38bdf8', '#f472b6', '#4ade80', '#fbbf24', '#c084fc'];
+
+  let periodDays = [];
+  let residents = [];
+  let currentBlocks = {};
+  let lastSolution = null;
+
+  function initPeriod() {
+    const m = parseInt(document.getElementById('startMonth').value, 10);
+    const y = parseInt(document.getElementById('startYear').value, 10);
+
+    const startDate = new Date(y, m, 15);
+    const endDate = new Date(y, m + 1, 16);
+
+    periodDays = [];
+    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      const dow = d.getDay();
+      periodDays.push({
+        dateObj: new Date(d),
+        dateStr: `${yyyy}-${mm}-${dd}`,
+        dayOfWeek: dow,
+        label: `${DIAS_SEMANA[dow]} ${d.getDate()} ${MESES[d.getMonth()]}`,
+        isWeekend: dow === 0 || dow === 6,
+        isFriday: dow === 5,
+        isHoliday: false
+      });
+    }
+
+    document.getElementById('holiday-selector-area').style.display = 'block';
+    document.getElementById('step-residents').style.display = 'block';
+    renderHolidayGrid();
+    renderResidentDaysGrid();
+  }
+
+  function renderHolidayGrid() {
+    const grid = document.getElementById('holiday-grid');
+    grid.innerHTML = '';
+    periodDays.forEach((day, idx) => {
+      const div = document.createElement('div');
+      div.className = 'day-chip' + (day.isHoliday ? ' holiday' : (day.isWeekend ? ' weekend' : ''));
+      div.innerHTML = `${day.label}<br><small>${day.isHoliday ? 'FERIADO' : (day.isWeekend ? 'FinDe' : 'Hábil')}</small>`;
+      div.onclick = () => {
+        periodDays[idx].isHoliday = !periodDays[idx].isHoliday;
+        renderHolidayGrid();
+        renderResidentDaysGrid();
+      };
+      grid.appendChild(div);
+    });
+  }
+
+  function renderResidentDaysGrid() {
+    const grid = document.getElementById('resident-days-grid');
+    grid.innerHTML = '';
+    periodDays.forEach(day => {
+      const block = currentBlocks[day.dateStr];
+      const div = document.createElement('div');
+      let cls = 'day-chip';
+      if (day.isHoliday) cls += ' holiday';
+      else if (day.isWeekend) cls += ' weekend';
+      if (block) cls += ` blocked-${block}`;
+
+      div.className = cls;
+      div.innerHTML = `${day.label}<br><strong>${block || (day.isHoliday ? 'FER' : '')}</strong>`;
+      div.onclick = () => {
+        const type = document.getElementById('blockType').value;
+        if (currentBlocks[day.dateStr] === type) delete currentBlocks[day.dateStr];
+        else currentBlocks[day.dateStr] = type;
+        renderResidentDaysGrid();
+      };
+      grid.appendChild(div);
+    });
+  }
+
+  function clearCurrentGrid() {
+    currentBlocks = {};
+    renderResidentDaysGrid();
+  }
+
+  function saveResident() {
+    if (residents.length >= 5) {
+      alert('Ya cargaste los 5 residentes.');
+      return;
+    }
+    const name = document.getElementById('resName').value.trim();
+    if (!name) {
+      alert('Ingresá un nombre.');
+      return;
+    }
+    residents.push({
+      name,
+      color: document.getElementById('resColor').value,
+      blocks: { ...currentBlocks },
+      avoidFriday: document.getElementById('fridayRule').value === 'avoid'
+    });
+
+    document.getElementById('resName').value = '';
+    document.getElementById('resColor').value = DEFAULT_COLORS[residents.length % DEFAULT_COLORS.length];
+    currentBlocks = {};
+    renderResidentDaysGrid();
+    renderResidentsList();
+  }
+
+  function removeResident(idx) {
+    residents.splice(idx, 1);
+    renderResidentsList();
+  }
+
+  function renderResidentsList() {
+    document.getElementById('res-count').innerText = residents.length;
+    const container = document.getElementById('residents-list-container');
+    if (!residents.length) {
+      container.innerHTML = '';
+      return;
+    }
+    let html = '<table><thead><tr><th>Residente</th><th>Viernes</th><th>Bloqueos</th><th>Acción</th></tr></thead><tbody>';
+    residents.forEach((r, idx) => {
+      const blocks = Object.entries(r.blocks).map(([ds, m]) => {
+        const d = periodDays.find(x => x.dateStr === ds);
+        return `${d ? d.label : ds} (${m})`;
+      });
+      html += `<tr>
+        <td><span class="color-dot" style="background:${r.color}"></span><strong>${r.name}</strong></td>
+        <td>${r.avoidFriday ? 'Libre habitual' : 'Disponible'}</td>
+        <td>${blocks.length ? blocks.join(', ') : 'Ninguno'}</td>
+        <td><button class="danger" style="padding:4px 8px; font-size:0.8rem;" onclick="removeResident(${idx})">Quitar</button></td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
+  }
+
+  function generateSchedule() {
+    if (residents.length !== 5) {
+      alert('Cargá exactamente 5 residentes (40 turnos / 20 días).');
+      return;
+    }
+
+    const weekendOrHolidayDays = periodDays.map((d, i) => ({ ...d, idx: i })).filter(d => d.isWeekend || d.isHoliday);
+    const weekdayDays = periodDays.map((d, i) => ({ ...d, idx: i })).filter(d => !d.isWeekend && !d.isHoliday);
+
+    if (weekendOrHolidayDays.length < 10 || weekdayDays.length < 10) {
+      alert('No hay suficientes días de semana o fin de semana/feriado en el rango para cubrir 10 y 10.');
+      return;
+    }
+
+    const holidays = weekendOrHolidayDays.filter(d => d.isHoliday);
+    const regularWeekends = weekendOrHolidayDays.filter(d => !d.isHoliday);
+    const monToThu = weekdayDays.filter(d => !d.isFriday);
+    const fridays = weekdayDays.filter(d => d.isFriday);
+
+    const weekendCombos = getCombinations(regularWeekends, Math.max(0, 10 - holidays.length), 35)
+      .map(c => [...holidays, ...c].sort((a, b) => a.idx - b.idx));
+
+    const weekdayCombos = getCombinations([...monToThu, ...fridays], 10, 45)
+      .map(c => c.sort((a, b) => a.idx - b.idx));
+
+    let found = null;
+    for (const wDays of weekendCombos) {
+      for (const dDays of weekdayCombos) {
+        const selected20 = [...wDays, ...dDays].sort((a, b) => a.idx - b.idx);
+        const solved = solveAssignment(selected20);
+        if (solved) {
+          found = solved;
+          break;
+        }
+      }
+      if (found) break;
+    }
+
+    lastSolution = found;
+    renderResult(found);
+  }
+
+  function getCombinations(arr, k, limit) {
+    if (k === 0) return [[]];
+    if (k > arr.length) return [];
+    const results = [];
+    function helper(start, combo) {
+      if (results.length >= limit) return;
+      if (combo.length === k) {
+        results.push([...combo]);
+        return;
+      }
+      for (let i = start; i <= arr.length - (k - combo.length); i++) {
+        combo.push(arr[i]);
+        helper(i + 1, combo);
+        combo.pop();
+      }
+    }
+    helper(0, []);
+    return results;
+  }
+
+  function solveAssignment(days20) {
+    const slots = [];
+    days20.forEach(d => {
+      const isWknd = d.isWeekend || d.isHoliday;
+      slots.push({ day: d, type: 'DAY', isWknd, startHr: d.idx * 24 + 8, endHr: d.idx * 24 + 20 });
+      slots.push({ day: d, type: 'NIGHT', isWknd, startHr: d.idx * 24 + 20.02, endHr: (d.idx + 1) * 24 + 7.98 });
+    });
+
+    const state = residents.map((r, i) => ({
+      id: i,
+      wkndCount: 0,
+      wkdayCount: 0,
+      dayShiftCount: 0,
+      nightShiftCount: 0,
+      assignedSlots: []
+    }));
+
+    let iterations = 0;
+    const MAX_ITER = 30000;
+
+    function backtrack(slotIdx) {
+      if (iterations++ > MAX_ITER) return false;
+      if (slotIdx === slots.length) return true;
+
+      const slot = slots[slotIdx];
+      const candidates = [...state].sort((a, b) => {
+        const remA = slot.isWknd ? (4 - a.wkndCount) : (4 - a.wkdayCount);
+        const remB = slot.isWknd ? (4 - b.wkndCount) : (4 - b.wkdayCount);
+        if (remB !== remA) return remB - remA;
+        const typeA = slot.type === 'DAY' ? a.dayShiftCount : a.nightShiftCount;
+        const typeB = slot.type === 'DAY' ? b.dayShiftCount : b.nightShiftCount;
+        return typeA - typeB;
+      });
+
+      for (const resState of candidates) {
+        const resData = residents[resState.id];
+        if (slot.isWknd && resState.wkndCount >= 4) continue;
+        if (!slot.isWknd && resState.wkdayCount >= 4) continue;
+        if (resData.blocks[slot.day.dateStr]) continue;
+        if (slot.day.isFriday && resData.avoidFriday) continue;
+
+        let restOk = true;
+        for (const prev of resState.assignedSlots) {
+          if (slot.startHr - prev.endHr < 48) {
+            restOk = false;
+            break;
+          }
+        }
+        if (!restOk) continue;
+
+        if (slot.isWknd) resState.wkndCount++; else resState.wkdayCount++;
+        if (slot.type === 'DAY') resState.dayShiftCount++; else resState.nightShiftCount++;
+        resState.assignedSlots.push(slot);
+
+        if (backtrack(slotIdx + 1)) return true;
+
+        resState.assignedSlots.pop();
+        if (slot.isWknd) resState.wkndCount--; else resState.wkdayCount--;
+        if (slot.type === 'DAY') resState.dayShiftCount--; else resState.nightShiftCount--;
+      }
+      return false;
+    }
+
+    if (backtrack(0)) {
+      const mapByDate = {};
+      slots.forEach(s => {
+        if (!mapByDate[s.day.dateStr]) mapByDate[s.day.dateStr] = {};
+        const owner = state.find(st => st.assignedSlots.includes(s));
+        mapByDate[s.day.dateStr][s.type] = residents[owner.id];
+      });
+      return { mapByDate, stats: state };
+    }
+    return null;
+  }
+
+  function renderResult(solution) {
+    const stepRes = document.getElementById('step-result');
+    const feedback = document.getElementById('solver-feedback');
+    const calOut = document.getElementById('calendar-output');
+    const sumOut = document.getElementById('summary-table');
+
+    stepRes.style.display = 'block';
+    stepRes.scrollIntoView({ behavior: 'smooth' });
+
+    if (!solution) {
+      feedback.innerHTML = `<div class="alert alert-error">
+        ⚠️ No se encontró una combinación válida con las restricciones actuales. Revisá bloqueos coincidentes o habilitá viernes.
+      </div>`;
+      calOut.innerHTML = '';
+      sumOut.innerHTML = '';
+      return;
+    }
+
+    feedback.innerHTML = `<div class="alert alert-success">
+      ✅ Esquema óptimo listo: 20 días (40 turnos de 12 hs), descanso ≥ 48 hs, feriados priorizados y cupo 4 semana + 4 finde/feriado por residente.
+    </div>`;
+
+    let html = '<div class="calendar-grid">';
+    ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].forEach(h => {
+      html += `<div class="cal-header">${h}</div>`;
+    });
+
+    const firstDow = (periodDays[0].dayOfWeek + 6) % 7;
+    for (let i = 0; i < firstDow; i++) html += `<div class="cal-cell empty"></div>`;
+
+    periodDays.forEach(day => {
+      const assigned = solution.mapByDate[day.dateStr];
+      const tag = day.isHoliday ? 'FERIADO' : (day.isWeekend ? 'FINDE' : '');
+
+      if (assigned) {
+        const dRes = assigned.DAY;
+        const nRes = assigned.NIGHT;
+        const samePerson = dRes.name === nRes.name;
+        const grad = samePerson
+          ? dRes.color
+          : `linear-gradient(125deg, ${dRes.color} 0%, ${dRes.color} 46%, ${nRes.color} 54%, ${nRes.color} 100%)`;
+
+        html += `<div class="cal-cell" style="background: ${grad};">
+          <div class="cal-top">
+            <span class="cal-date">${day.dateObj.getDate()} ${MESES[day.dateObj.getMonth()]}</span>
+            ${tag ? `<span class="badge">${tag}</span>` : ''}
+          </div>
+          <div style="text-align:center;">
+            <span class="shared-pill">${samePerson ? '1 RESIDENTE (12h)' : '2 RESIDENTES EN EL DÍA'}</span>
+            <div class="guard-box">
+              <div class="guard-names">${dRes.name} / ${nRes.name}</div>
+              <div class="shift-times">☀️ 08–20 (${dRes.name}) · 🌙 20–08 (${nRes.name})</div>
+            </div>
+          </div>
+        </div>`;
+      } else {
+        html += `<div class="cal-cell uncovered">
+          <div class="cal-top">
+            <span class="cal-date">${day.dateObj.getDate()} ${MESES[day.dateObj.getMonth()]}</span>
+            ${tag ? `<span class="badge" style="background:#94a3b8;">${tag}</span>` : ''}
+          </div>
+          <div style="font-size:0.75rem; text-align:center; margin-bottom:12px;">Sin guardia</div>
+        </div>`;
+      }
+    });
+
+    html += '</div>';
+    calOut.innerHTML = html;
+
+    let tbl = `<table><thead><tr>
+      <th>Residente</th><th>Semana (12h)</th><th>Fin de Semana / Feriado (12h)</th>
+      <th>Diurnas</th><th>Nocturnas</th><th>Total Horas</th>
+    </tr></thead><tbody>`;
+
+    solution.stats.forEach(st => {
+      const r = residents[st.id];
+      tbl += `<tr>
+        <td><span class="color-dot" style="background:${r.color}"></span><strong>${r.name}</strong></td>
+        <td>${st.wkdayCount} / 4</td>
+        <td>${st.wkndCount} / 4</td>
+        <td>${st.dayShiftCount}</td>
+        <td>${st.nightShiftCount}</td>
+        <td><strong>${(st.wkdayCount + st.wkndCount) * 12} hs</strong></td>
+      </tr>`;
+    });
+    tbl += '</tbody></table>';
+    sumOut.innerHTML = tbl;
+  }
+
+  // =========================================================================
+  // GENERACIÓN Y DESCARGA DE IMAGEN PNG EN ALTA RESOLUCIÓN (CANVAS)
+  // =========================================================================
+  function downloadScheduleImage() {
+    if (!lastSolution) {
+      alert('Primero generá el esquema de guardias.');
+      return;
+    }
+
+    const W = 1600;
+    const cols = 7;
+    const firstDow = (periodDays[0].dayOfWeek + 6) % 7;
+    const totalCells = firstDow + periodDays.length;
+    const rows = Math.ceil(totalCells / cols);
+
+    const marginX = 50;
+    const headerH = 145;
+    const colGap = 12;
+    const rowGap = 12;
+    const cellW = Math.floor((W - marginX * 2 - colGap * (cols - 1)) / cols);
+    const cellH = 128;
+    const gridTop = headerH + 38;
+    const gridH = rows * (cellH + rowGap);
+    const summaryTop = gridTop + gridH + 24;
+    const summaryH = 225;
+    const H = summaryTop + summaryH + 35;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d');
+
+    // Fondo general
+    ctx.fillStyle = '#f8fafc';
+    ctx.fillRect(0, 0, W, H);
+
+    // Encabezado Hospital Provincial de Neuquén
+    ctx.fillStyle = '#0f172a';
+    ctx.font = '800 34px system-ui, -apple-system, sans-serif';
+    ctx.fillText('ESQUEMA DE GUARDIAS — RESIDENTES', marginX, 54);
+
+    ctx.fillStyle = '#0284c7';
+    ctx.font = '700 22px system-ui, -apple-system, sans-serif';
+    ctx.fillText('Hospital Provincial de Neuquén', marginX, 88);
+
+    const firstD = periodDays[0].dateObj;
+    const lastD = periodDays[periodDays.length - 1].dateObj;
+    const rangeLabel = `Período: ${firstD.getDate()} de ${MESES_FULL[firstD.getMonth()]} al ${lastD.getDate()} de ${MESES_FULL[lastD.getMonth()]} ${lastD.getFullYear()}`;
+    ctx.fillStyle = '#475569';
+    ctx.font = '600 18px system-ui, -apple-system, sans-serif';
+    ctx.fillText(rangeLabel, marginX, 118);
+
+    // Leyenda de colores en esquina superior derecha
+    let legX = W - marginX;
+    ctx.font = '700 15px system-ui, -apple-system, sans-serif';
+    [...residents].reverse().forEach(r => {
+      const textW = ctx.measureText(r.name).width;
+      legX -= (textW + 26);
+      ctx.fillStyle = r.color;
+      ctx.beginPath();
+      ctx.arc(legX, 52, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      ctx.fillStyle = '#0f172a';
+      ctx.fillText(r.name, legX + 14, 57);
+      legX -= 18;
+    });
+
+    // Días de la semana
+    const dayLabels = ['LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO', 'DOMINGO'];
+    dayLabels.forEach((lbl, i) => {
+      const x = marginX + i * (cellW + colGap);
+      roundRect(ctx, x, headerH, cellW, 28, 6, '#e2e8f0', null);
+      ctx.fillStyle = '#334155';
+      ctx.font = '700 13px system-ui, -apple-system, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(lbl, x + cellW / 2, headerH + 19);
+      ctx.textAlign = 'left';
+    });
+
+    // Celdas del calendario
+    periodDays.forEach((day, idx) => {
+      const pos = firstDow + idx;
+      const rIdx = Math.floor(pos / cols);
+      const cIdx = pos % cols;
+      const x = marginX + cIdx * (cellW + colGap);
+      const y = gridTop + rIdx * (cellH + rowGap);
+
+      const assigned = lastSolution.mapByDate[day.dateStr];
+      if (assigned) {
+        const dRes = assigned.DAY;
+        const nRes = assigned.NIGHT;
+
+        if (dRes.name === nRes.name) {
+          roundRect(ctx, x, y, cellW, cellH, 12, dRes.color, 'rgba(15,23,42,0.2)');
+        } else {
+          // Degradé diagonal entre ambos residentes
+          const grad = ctx.createLinearGradient(x, y, x + cellW, y + cellH);
+          grad.addColorStop(0, dRes.color);
+          grad.addColorStop(0.47, dRes.color);
+          grad.addColorStop(0.53, nRes.color);
+          grad.addColorStop(1, nRes.color);
+          roundRect(ctx, x, y, cellW, cellH, 12, grad, 'rgba(15,23,42,0.22)');
+        }
+
+        // Fecha + etiqueta
+        ctx.fillStyle = '#0f172a';
+        ctx.font = '800 14px system-ui, -apple-system, sans-serif';
+        ctx.fillText(`${day.dateObj.getDate()} ${MESES[day.dateObj.getMonth()]}`, x + 10, y + 22);
+
+        if (day.isHoliday || day.isWeekend) {
+          const badgeTxt = day.isHoliday ? 'FERIADO' : 'FINDE';
+          const bw = ctx.measureText(badgeTxt).width + 12;
+          roundRect(ctx, x + cellW - bw - 8, y + 8, bw, 20, 9, 'rgba(15,23,42,0.78)', null);
+          ctx.fillStyle = '#ffffff';
+          ctx.font = '700 10px system-ui, -apple-system, sans-serif';
+          ctx.fillText(badgeTxt, x + cellW - bw - 2, y + 21);
+        }
+
+        // Caja blanca translúcida con nombres
+        roundRect(ctx, x + 8, y + 40, cellW - 16, cellH - 50, 8, 'rgba(255,255,255,0.92)', null);
+        ctx.fillStyle = '#0f172a';
+        ctx.font = '800 15px system-ui, -apple-system, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(`${dRes.name} / ${nRes.name}`, x + cellW / 2, y + 66);
+
+        ctx.fillStyle = '#334155';
+        ctx.font = '600 11px system-ui, -apple-system, sans-serif';
+        ctx.fillText(`08–20: ${dRes.name} · 20–08: ${nRes.name}`, x + cellW / 2, y + 88);
+        ctx.textAlign = 'left';
+      } else {
+        roundRect(ctx, x, y, cellW, cellH, 12, '#f1f5f9', '#cbd5e1');
+        ctx.fillStyle = '#64748b';
+        ctx.font = '700 14px system-ui, -apple-system, sans-serif';
+        ctx.fillText(`${day.dateObj.getDate()} ${MESES[day.dateObj.getMonth()]}`, x + 10, y + 22);
+        ctx.font = '600 12px system-ui, -apple-system, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Sin guardia', x + cellW / 2, y + cellH / 2 + 6);
+        ctx.textAlign = 'left';
+      }
+    });
+
+    // Resumen inferior en la imagen
+    roundRect(ctx, marginX, summaryTop, W - marginX * 2, summaryH, 14, '#ffffff', '#cbd5e1');
+    ctx.fillStyle = '#0f172a';
+    ctx.font = '800 18px system-ui, -apple-system, sans-serif';
+    ctx.fillText('RESUMEN DE GUARDIAS (8 TURNOS DE 12 HS POR RESIDENTE)', marginX + 20, summaryTop + 32);
+
+    ctx.font = '600 15px system-ui, -apple-system, sans-serif';
+    lastSolution.stats.forEach((st, i) => {
+      const r = residents[st.id];
+      const ry = summaryTop + 64 + i * 30;
+      ctx.fillStyle = r.color;
+      ctx.beginPath();
+      ctx.arc(marginX + 28, ry - 5, 7, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#0f172a';
+      ctx.fillText(
+        `${r.name}:  ${st.wkdayCount} Semana + ${st.wkndCount} Finde/Feriado  |  ${st.dayShiftCount} Diurnas / ${st.nightShiftCount} Nocturnas  |  Total: ${(st.wkdayCount + st.wkndCount) * 12} hs`,
+        marginX + 46,
+        ry
+      );
+    });
+
+    const link = document.createElement('a');
+    link.download = `guardias-hospital-neuquen-${periodDays[0].dateStr}-a-${periodDays[periodDays.length - 1].dateStr}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }
+
+  function roundRect(ctx, x, y, w, h, r, fillStyle, strokeStyle) {
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, r);
+    if (fillStyle) {
+      ctx.fillStyle = fillStyle;
+      ctx.fill();
+    }
+    if (strokeStyle) {
+      ctx.strokeStyle = strokeStyle;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+  }
+</script>
+</body>
+</html>
