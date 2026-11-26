@@ -261,9 +261,30 @@
     }
 
     table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 0.9rem; }
-    th, td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
+    th, td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; }
     th { background: #f1f5f9; }
     .color-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 6px; border: 1px solid rgba(0,0,0,0.2); }
+    .day-chip {
+      display: inline-block;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 2px 7px;
+      margin: 2px 4px 2px 0;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #0f172a;
+    }
+    .day-chip.is-hol {
+      background: #fee2e2;
+      border-color: #fca5a5;
+      color: #991b1b;
+    }
+    .day-chip.is-wknd {
+      background: #fef3c7;
+      border-color: #fcd34d;
+      color: #92400e;
+    }
     .alert { padding: 12px 14px; border-radius: 10px; margin-bottom: 15px; font-weight: 500; }
     .alert-error { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
     .alert-success { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
@@ -788,6 +809,8 @@
       id: i,
       wkndCount: 0,
       wkdayCount: 0,
+      pureWkndCount: 0,
+      holidayCount: 0,
       dayShiftCount: 0,
       nightShiftCount: 0,
       assignedSlots: []
@@ -834,7 +857,11 @@
         });
 
       for (const st of candidates) {
+        const isHol = Boolean(slot.day.isHoliday);
+        const isPureWknd = Boolean(slot.day.isWeekend && !slot.day.isHoliday);
         if (slot.isWknd) st.wkndCount++; else st.wkdayCount++;
+        if (isHol) st.holidayCount++;
+        if (isPureWknd) st.pureWkndCount++;
         if (slot.type === 'DAY') st.dayShiftCount++; else st.nightShiftCount++;
         st.assignedSlots.push(slot);
 
@@ -842,6 +869,8 @@
 
         st.assignedSlots.pop();
         if (slot.isWknd) st.wkndCount--; else st.wkdayCount--;
+        if (isHol) st.holidayCount--;
+        if (isPureWknd) st.pureWkndCount--;
         if (slot.type === 'DAY') st.dayShiftCount--; else st.nightShiftCount--;
       }
 
@@ -891,6 +920,28 @@
     solved = solveExact4And4(allNonFriday, 4500000);
     lastSolution = solved ? { ...solved, mode: 'ideal' } : null;
     renderResult(lastSolution);
+  }
+
+  function getFinalDaySummaryChips(st) {
+    // Agrupa por fecha en orden cronológico del período
+    const sortedSlots = [...st.assignedSlots].sort((a, b) => a.startHr - b.startHr);
+    const byDay = new Map();
+    sortedSlots.forEach(s => {
+      if (!byDay.has(s.day.dateStr)) {
+        byDay.set(s.day.dateStr, { day: s.day, types: [] });
+      }
+      byDay.get(s.day.dateStr).types.push(s.type === 'DAY' ? '08–20' : '20–08');
+    });
+
+    return Array.from(byDay.values()).map(item => {
+      const kind = item.day.isHoliday ? 'Feriado' : (item.day.isWeekend ? 'Finde' : 'Semana');
+      const turnTxt = item.types.join(' y ');
+      return {
+        text: `${item.day.label} (${turnTxt} · ${kind})`,
+        isHoliday: Boolean(item.day.isHoliday),
+        isWeekend: Boolean(item.day.isWeekend && !item.day.isHoliday)
+      };
+    });
   }
 
   function renderResult(solution) {
@@ -975,24 +1026,30 @@
     calOut.innerHTML = html;
 
     let tbl = `<table><thead><tr>
-      <th>Residente</th><th>Días Propuestos</th><th>Semana (12h)</th><th>Fin de Semana / Feriado (12h)</th>
-      <th>Diurnas</th><th>Nocturnas</th><th>Total Horas</th>
+      <th>Residente</th>
+      <th>Días del Cronograma Final</th>
+      <th>Finde (12h)</th>
+      <th>Feriado (12h)</th>
+      <th>Finde + Feriado</th>
+      <th>Semana (12h)</th>
+      <th>Total</th>
     </tr></thead><tbody>`;
 
     solution.stats.forEach(st => {
       const r = residents[st.id];
-      const propLabels = (r.proposedDays || []).map(ds => {
-        const d = periodDays.find(x => x.dateStr === ds);
-        return d ? d.label : ds;
-      });
+      const chips = getFinalDaySummaryChips(st).map(c => {
+        const cls = c.isHoliday ? 'day-chip is-hol' : (c.isWeekend ? 'day-chip is-wknd' : 'day-chip');
+        return `<span class="${cls}">${c.text}</span>`;
+      }).join('');
+
       tbl += `<tr>
         <td><span class="color-dot" style="background:${r.color}"></span><strong>${r.name}</strong></td>
-        <td>${propLabels.length ? propLabels.join(', ') : '-'}</td>
-        <td>${st.wkdayCount}</td>
-        <td>${st.wkndCount}</td>
-        <td>${st.dayShiftCount}</td>
-        <td>${st.nightShiftCount}</td>
-        <td><strong>${(st.wkdayCount + st.wkndCount) * 12} hs</strong></td>
+        <td>${chips || '-'}</td>
+        <td>${st.pureWkndCount}</td>
+        <td>${st.holidayCount}</td>
+        <td><strong>${st.wkndCount}</strong></td>
+        <td><strong>${st.wkdayCount}</strong></td>
+        <td><strong>${(st.wkdayCount + st.wkndCount) * 12} hs</strong> (${st.wkdayCount + st.wkndCount} turnos)</td>
       </tr>`;
     });
     tbl += '</tbody></table>';
@@ -1041,7 +1098,7 @@
       const gridTop = headerH + 38;
       const gridH = rows * (cellH + rowGap);
       const summaryTop = gridTop + gridH + 24;
-      const summaryH = 225;
+      const summaryH = 245;
       const H = summaryTop + summaryH + 35;
 
       const canvas = document.createElement('canvas');
@@ -1176,12 +1233,14 @@
       drawRoundRect(ctx, marginX, summaryTop, W - marginX * 2, summaryH, 14, '#ffffff', '#cbd5e1');
       ctx.fillStyle = '#0f172a';
       ctx.font = '800 18px system-ui, -apple-system, sans-serif';
-      ctx.fillText('RESUMEN DE GUARDIAS — 1.º AÑO (8 TURNOS DE 12 HS POR RESIDENTE)', marginX + 20, summaryTop + 32);
+      ctx.fillText('RESUMEN POR RESIDENTE — CRONOGRAMA FINAL (8 TURNOS DE 12 HS / 96 HS)', marginX + 20, summaryTop + 32);
 
-      ctx.font = '600 15px system-ui, -apple-system, sans-serif';
+      ctx.font = '600 14px system-ui, -apple-system, sans-serif';
       lastSolution.stats.forEach((st, i) => {
         const r = residents[st.id];
-        const ry = summaryTop + 64 + i * 30;
+        const ry = summaryTop + 62 + i * 32;
+        const daysList = getFinalDaySummaryChips(st).map(c => c.text).join(' · ');
+
         ctx.fillStyle = r.color;
         ctx.beginPath();
         ctx.arc(marginX + 28, ry - 5, 7, 0, Math.PI * 2);
@@ -1189,7 +1248,7 @@
 
         ctx.fillStyle = '#0f172a';
         ctx.fillText(
-          `${r.name}:  ${st.wkdayCount} Semana + ${st.wkndCount} Finde/Feriado  |  ${st.dayShiftCount} Diurnas / ${st.nightShiftCount} Nocturnas  |  Total: ${(st.wkdayCount + st.wkndCount) * 12} hs`,
+          `${r.name}:  ${st.wkndCount} Finde+Feriado (${st.pureWkndCount} Finde, ${st.holidayCount} Fer.) + ${st.wkdayCount} Semana  |  Días: ${daysList}`,
           marginX + 46,
           ry
         );
