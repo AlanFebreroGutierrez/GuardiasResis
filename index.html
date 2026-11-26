@@ -15,7 +15,6 @@
       --border: #cbd5e1;
       --weekend: #fef3c7;
       --holiday: #fee2e2;
-      --friday-skip: #e2e8f0;
     }
     * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
     body { background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
@@ -109,13 +108,13 @@
     .preset-btn {
       display: inline-flex;
       align-items: center;
-      gap: 7px;
-      padding: 7px 12px;
+      gap: 8px;
+      padding: 8px 14px;
       border-radius: 9px;
       border: 2px solid transparent;
       background: #f8fafc;
       color: #0f172a;
-      font-size: 0.88rem;
+      font-size: 0.9rem;
       font-weight: 700;
       cursor: pointer;
     }
@@ -166,7 +165,7 @@
       background: transparent;
     }
     .day-cell-btn {
-      min-height: 64px;
+      min-height: 66px;
       border: 1px solid var(--border);
       border-radius: 9px;
       padding: 6px;
@@ -195,12 +194,18 @@
       background: #f1f5f9;
       color: #64748b;
     }
+    .day-cell-btn.proposed-GUARDIA {
+      background: #dcfce7;
+      border-color: #16a34a;
+      color: #14532d;
+      font-weight: 800;
+    }
     .day-cell-btn.blocked-ART { background: #dbeafe; border-color: #3b82f6; color: #1e3a8a; font-weight: 700; }
     .day-cell-btn.blocked-ENF { background: #fce7f3; border-color: #ec4899; color: #831843; font-weight: 700; }
     .day-cell-btn.blocked-IMP { background: #f3e8ff; border-color: #a855f7; color: #581c87; font-weight: 700; }
 
     .cal-cell {
-      min-height: 116px;
+      min-height: 118px;
       border: 1px solid rgba(15, 23, 42, 0.16);
       border-radius: 12px;
       padding: 8px;
@@ -211,15 +216,19 @@
     }
     .cal-cell.uncovered { background: #f8fafc; color: #94a3b8; border-style: dashed; }
     .cal-cell.friday-second { background: #f1f5f9; color: #64748b; border-style: dotted; }
-    .cal-top { display: flex; justify-content: space-between; align-items: center; gap: 4px; }
+    .cal-top { display: flex; justify-content: space-between; align-items: center; gap: 4px; flex-wrap: wrap; }
     .cal-date { font-weight: 800; font-size: 0.85rem; }
     .badge {
       font-size: 0.62rem;
       padding: 2px 6px;
       border-radius: 999px;
-      background: rgba(15, 23, 42, 0.78);
+      background: rgba(15, 23, 42, 0.82);
       color: #fff;
       font-weight: 700;
+    }
+    .badge.holiday-badge {
+      background: #dc2626;
+      color: #fff;
     }
     .shared-pill {
       display: inline-block;
@@ -275,14 +284,14 @@
     </div>
 
     <p class="intro-text">
-      Esquema de guardias de 12 hs para <strong>1.º año</strong> (20 días cubiertos del 16 al 15, sin viernes, que corresponden a 2.º año), priorizando feriados, fines de semana y luego días de semana, con descanso de 48 hs.
+      Esquema de guardias de 12 hs para <strong>1.º año</strong> (del 16 al 15; viernes de 2.º año). Cada residente propone <strong>4 días</strong> (toma 4 turnos de 12 h en sus días propuestos y combina los otros 4 turnos con días propuestos del grupo / prioridad feriados → findes → semana), con descanso de 48 hs y bloqueos <code>ART</code>, <code>ENF</code> e <code>IMP</code>.
     </p>
 
     <div class="features-mini">
-      <span class="feat-tag">1° Feriados · 2° Findes · 3° Semana</span>
-      <span class="feat-tag">Viernes: 2.º año (no se asignan aquí)</span>
-      <span class="feat-tag">Colores fijos por residente</span>
-      <span class="feat-tag">ART (máx. 2) / ENF / IMP</span>
+      <span class="feat-tag">4 días propuestos por residente</span>
+      <span class="feat-tag">Prioridad: Feriados → Findes → Semana</span>
+      <span class="feat-tag">Viernes: 2.º año</span>
+      <span class="feat-tag">GUARDIA / ART (máx. 2) / ENF / IMP</span>
       <span class="feat-tag">📥 Descarga en imagen PNG</span>
     </div>
 
@@ -343,7 +352,7 @@
   <div class="card" id="step-holidays" style="display:none;">
     <h2>2. Feriados del Período</h2>
     <p style="margin: 0 0 8px; font-size: 0.9rem;">
-      Marcá los días que sean <strong>feriado</strong> (se cubren de forma prioritaria por 1.º año; los viernes son de 2.º año):
+      Marcá los días que sean <strong>feriado</strong> (se cubren de forma prioritaria por 1.º año y quedan rotulados como <strong>FERIADO</strong> en el cronograma y la imagen):
     </p>
     <div id="holiday-calendar-grid"></div>
     <div class="row" style="margin-top: 15px;">
@@ -356,7 +365,7 @@
     <h2>3. Carga de Residentes de 1.º Año (<span id="res-count">0</span>/5)</h2>
 
     <div style="margin-bottom: 12px;">
-      <label>Tocá el nombre (color asignado automáticamente):</label>
+      <label>Tocá el nombre:</label>
       <div class="name-presets" id="namePresets"></div>
     </div>
 
@@ -369,21 +378,22 @@
         <label>Color asignado:</label>
         <div class="color-preview" id="assignedColorPreview">
           <span class="swatch" id="previewSwatch" style="background:#cbd5e1"></span>
-          <span id="previewColorName">Elegí un nombre</span>
+          <span id="previewColorText">Sin seleccionar</span>
         </div>
       </div>
       <div>
-        <label>Motivo al marcar:</label>
-        <select id="blockType">
-          <option value="ART">Artículo (máx. 2)</option>
-          <option value="ENF">Enfermedad</option>
-          <option value="IMP">Imprevisto X</option>
+        <label>Qué vas a marcar en el calendario:</label>
+        <select id="markMode">
+          <option value="GUARDIA">Día propuesto de guardia (4 días)</option>
+          <option value="ART">Artículo (bloqueo, máx. 2)</option>
+          <option value="ENF">Enfermedad (bloqueo)</option>
+          <option value="IMP">Imprevisto X (bloqueo)</option>
         </select>
       </div>
     </div>
 
     <p style="margin: 14px 0 6px; font-size: 0.9rem;">
-      Tocá los días que <strong>NO puede hacer guardia</strong> según el motivo seleccionado (opcional; los viernes no se asignan a 1.º año):
+      Marcá los <strong>4 días propuestos de guardia</strong> (<code>GUARDIA</code>) y, si corresponde, días de <code>ART</code>, <code>ENF</code> o <code>IMP</code>:
     </p>
     <div id="resident-calendar-grid"></div>
 
@@ -420,16 +430,16 @@
   const MESES_FULL = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
   const FIXED_RESIDENTS = [
-    { canonical: 'Sofía', colorName: 'Rosa', hex: '#f472b6', keys: ['sofia', 'sofi', 'so'] },
-    { canonical: 'Alan', colorName: 'Violeta', hex: '#c084fc', keys: ['alan'] },
-    { canonical: 'Iván', colorName: 'Naranja', hex: '#fb923c', keys: ['ivan', 'iván'] },
-    { canonical: 'Agustina', colorName: 'Celeste', hex: '#38bdf8', keys: ['agustina', 'agus'] },
-    { canonical: 'Julia', colorName: 'Verde', hex: '#4ade80', keys: ['julia', 'juli', 'ju'] }
+    { canonical: 'Sofía', hex: '#f472b6', keys: ['sofia', 'sofi', 'so'] },
+    { canonical: 'Alan', hex: '#c084fc', keys: ['alan'] },
+    { canonical: 'Iván', hex: '#fb923c', keys: ['ivan', 'iván'] },
+    { canonical: 'Agustina', hex: '#38bdf8', keys: ['agustina', 'agus'] },
+    { canonical: 'Julia', hex: '#4ade80', keys: ['julia', 'juli', 'ju'] }
   ];
 
   let periodDays = [];
   let residents = [];
-  let currentBlocks = {};
+  let currentMarks = {};
   let lastSolution = null;
 
   function normalizeStr(s) {
@@ -447,11 +457,6 @@
     return null;
   }
 
-  function getColorLabel(hex) {
-    const found = FIXED_RESIDENTS.find(p => p.hex.toLowerCase() === (hex || '').toLowerCase());
-    return found ? found.colorName : hex;
-  }
-
   function renderNamePresetsAndColor() {
     const usedHexes = new Set(residents.map(r => r.color.toLowerCase()));
     const container = document.getElementById('namePresets');
@@ -466,7 +471,7 @@
       btn.type = 'button';
       btn.disabled = isTaken;
       btn.className = 'preset-btn' + (isSelected ? ' active' : '') + (isTaken ? ' used' : '');
-      btn.innerHTML = `<span class="swatch" style="background:${item.hex}"></span>${item.canonical} (${item.colorName})${isTaken ? ' · ya cargado' : ''}`;
+      btn.innerHTML = `<span class="swatch" style="background:${item.hex}"></span>${item.canonical}${isTaken ? ' · cargado' : ''}`;
       btn.onclick = () => {
         if (isTaken) return;
         document.getElementById('resName').value = item.canonical;
@@ -476,13 +481,13 @@
     });
 
     const swatch = document.getElementById('previewSwatch');
-    const label = document.getElementById('previewColorName');
+    const textEl = document.getElementById('previewColorText');
     if (matched) {
       swatch.style.background = matched.hex;
-      label.innerText = `${matched.colorName} (asignado a ${matched.canonical})`;
+      textEl.innerText = matched.canonical;
     } else {
       swatch.style.background = '#cbd5e1';
-      label.innerText = 'Elegí Sofía, Alan, Iván, Agustina o Julia';
+      textEl.innerText = 'Sin seleccionar';
     }
   }
 
@@ -527,7 +532,7 @@
     }
 
     residents = [];
-    currentBlocks = {};
+    currentMarks = {};
     lastSolution = null;
 
     document.getElementById('step-holidays').style.display = 'block';
@@ -594,15 +599,19 @@
     }
 
     periodDays.forEach((day, idx) => {
-      const block = currentBlocks[day.dateStr];
+      const mark = currentMarks[day.dateStr];
       let cls = 'day-cell-btn';
-      if (block) cls += ` blocked-${block}`;
+      if (mark === 'GUARDIA') cls += ' proposed-GUARDIA';
+      else if (mark) cls += ` blocked-${mark}`;
       else if (day.isHoliday) cls += ' holiday';
       else if (day.isWeekend) cls += ' weekend';
       else if (day.isFriday) cls += ' friday-note';
 
-      const subLabel = block || (day.isHoliday ? 'FER' : (day.isWeekend ? 'FinDe' : (day.isFriday ? 'Vie (2.º)' : DIAS_SEMANA[day.dayOfWeek])));
-      html += `<div class="${cls}" onclick="toggleDayBlock(${idx})">
+      const subLabel = mark === 'GUARDIA'
+        ? 'GUARDIA'
+        : (mark || (day.isHoliday ? 'FERIADO' : (day.isWeekend ? 'FinDe' : (day.isFriday ? 'Vie (2.º)' : DIAS_SEMANA[day.dayOfWeek]))));
+
+      html += `<div class="${cls}" onclick="toggleDayMark(${idx})">
         <span>${day.label}</span>
         <small>${subLabel}</small>
       </div>`;
@@ -612,30 +621,42 @@
     container.innerHTML = html;
   }
 
-  function toggleDayBlock(idx) {
+  function toggleDayMark(idx) {
     const day = periodDays[idx];
-    const type = document.getElementById('blockType').value;
+    const mode = document.getElementById('markMode').value;
 
-    if (currentBlocks[day.dateStr] === type) {
-      delete currentBlocks[day.dateStr];
+    if (currentMarks[day.dateStr] === mode) {
+      delete currentMarks[day.dateStr];
       renderResidentCalendarGrid();
       return;
     }
 
-    if (type === 'ART') {
-      const currentArtCount = Object.values(currentBlocks).filter(v => v === 'ART').length;
-      if (currentArtCount >= 2) {
-        alert('Como máximo se pueden cargar 2 artículos por residente en el esquema.');
+    if (mode === 'GUARDIA') {
+      if (day.isFriday) {
+        alert('Los viernes corresponden a 2.º año.');
+        return;
+      }
+      const currentProposed = Object.values(currentMarks).filter(v => v === 'GUARDIA').length;
+      if (currentProposed >= 4) {
+        alert('Cada residente propone 4 días de guardia.');
         return;
       }
     }
 
-    currentBlocks[day.dateStr] = type;
+    if (mode === 'ART') {
+      const currentArtCount = Object.values(currentMarks).filter(v => v === 'ART').length;
+      if (currentArtCount >= 2) {
+        alert('Como máximo se pueden cargar 2 artículos por residente.');
+        return;
+      }
+    }
+
+    currentMarks[day.dateStr] = mode;
     renderResidentCalendarGrid();
   }
 
   function clearCurrentGrid() {
-    currentBlocks = {};
+    currentMarks = {};
     renderResidentCalendarGrid();
   }
 
@@ -653,7 +674,7 @@
 
     const matched = matchFixedResident(rawName);
     if (!matched) {
-      alert('Usá uno de los nombres del equipo de 1.º año (Sofía, Alan, Iván, Agustina o Julia) para tomar su color asignado.');
+      alert('Seleccioná o escribí Sofía, Alan, Iván, Agustina o Julia.');
       return;
     }
 
@@ -663,7 +684,16 @@
       return;
     }
 
-    const artCount = Object.values(currentBlocks).filter(v => v === 'ART').length;
+    const proposedDays = Object.entries(currentMarks)
+      .filter(([, v]) => v === 'GUARDIA')
+      .map(([ds]) => ds);
+
+    const blocks = {};
+    Object.entries(currentMarks).forEach(([ds, v]) => {
+      if (v !== 'GUARDIA') blocks[ds] = v;
+    });
+
+    const artCount = Object.values(blocks).filter(v => v === 'ART').length;
     if (artCount > 2) {
       alert('Máximo 2 artículos por residente.');
       return;
@@ -672,11 +702,12 @@
     residents.push({
       name: matched.canonical,
       color: matched.hex,
-      blocks: { ...currentBlocks }
+      proposedDays,
+      blocks
     });
 
     document.getElementById('resName').value = '';
-    currentBlocks = {};
+    currentMarks = {};
     renderNamePresetsAndColor();
     renderResidentCalendarGrid();
     renderResidentsList();
@@ -695,21 +726,48 @@
       container.innerHTML = '';
       return;
     }
-    let html = '<table><thead><tr><th>Residente (1.º año)</th><th>Color</th><th>Bloqueos</th><th>Acción</th></tr></thead><tbody>';
+    let html = '<table><thead><tr><th>Residente</th><th>4 Días Propuestos</th><th>Bloqueos</th><th>Acción</th></tr></thead><tbody>';
     residents.forEach((r, idx) => {
-      const blocks = Object.entries(r.blocks).map(([ds, m]) => {
+      const propTxt = (r.proposedDays || []).map(ds => {
+        const d = periodDays.find(x => x.dateStr === ds);
+        return d ? d.label : ds;
+      });
+      const blkTxt = Object.entries(r.blocks || {}).map(([ds, m]) => {
         const d = periodDays.find(x => x.dateStr === ds);
         return `${d ? d.label : ds} (${m})`;
       });
       html += `<tr>
-        <td><strong>${r.name}</strong></td>
-        <td><span class="color-dot" style="background:${r.color}"></span>${getColorLabel(r.color)}</td>
-        <td>${blocks.length ? blocks.join(', ') : 'Ninguno'}</td>
+        <td><span class="color-dot" style="background:${r.color}"></span><strong>${r.name}</strong></td>
+        <td>${propTxt.length ? propTxt.join(', ') : 'Sin días propuestos'}</td>
+        <td>${blkTxt.length ? blkTxt.join(', ') : 'Ninguno'}</td>
         <td><button type="button" class="danger" style="padding:4px 8px; font-size:0.8rem;" onclick="removeResident(${idx})">Quitar</button></td>
       </tr>`;
     });
     html += '</tbody></table>';
     container.innerHTML = html;
+  }
+
+  function canRest48Hours(resState, slot) {
+    for (const prev of resState.assignedSlots) {
+      if (slot.startHr >= prev.endHr && (slot.startHr - prev.endHr) < 48) return false;
+      if (prev.startHr >= slot.endHr && (prev.startHr - slot.endHr) < 48) return false;
+      if (slot.startHr < prev.endHr && prev.startHr < slot.endHr) return false;
+    }
+    return true;
+  }
+
+  // Selecciona los 20 días priorizando: 1° Feriados, 2° Fines de semana, 3° Días propuestos, 4° Resto lun-jue (sin viernes)
+  function pickTop20Days(indexedDays) {
+    const nonFriday = indexedDays.filter(d => !d.isFriday);
+    const proposedSet = new Set();
+    residents.forEach(r => (r.proposedDays || []).forEach(ds => proposedSet.add(ds)));
+
+    const holidays = nonFriday.filter(d => d.isHoliday);
+    const weekends = nonFriday.filter(d => d.isWeekend && !d.isHoliday);
+    const proposedWeekdays = nonFriday.filter(d => !d.isWeekend && !d.isHoliday && proposedSet.has(d.dateStr));
+    const otherWeekdays = nonFriday.filter(d => !d.isWeekend && !d.isHoliday && !proposedSet.has(d.dateStr));
+
+    return [...holidays, ...weekends, ...proposedWeekdays, ...otherWeekdays].slice(0, 20);
   }
 
   function generateSchedule() {
@@ -723,152 +781,14 @@
     }
 
     const indexedDays = periodDays.map((d, i) => ({ ...d, idx: i }));
-
-    // Los viernes son de 2.º año: no se asignan en 1.º año
-    // Prioridad rígida: 1° Feriados, 2° Fines de semana (Sáb/Dom), 3° Días de semana (Lun-Jue)
-    const holidays = indexedDays.filter(d => d.isHoliday && !d.isFriday);
-    const weekends = indexedDays.filter(d => d.isWeekend && !d.isHoliday && !d.isFriday);
-    const weekdays = indexedDays.filter(d => !d.isWeekend && !d.isHoliday && !d.isFriday);
-
-    const orderedDays = [...holidays, ...weekends, ...weekdays];
-    const top20 = orderedDays.slice(0, 20);
-
-    // 1° intento: 4 finde/feriado + 4 semana por residente en los 20 días prioritarios
-    let solved = solveExact40(top20, 4, 4, 4, 4, 600000);
-    if (solved) {
-      lastSolution = { ...solved, mode: 'ideal' };
-      renderResult(lastSolution);
-      return;
-    }
-
-    // 2° intento: mantener prioridad estricta completando cupos en días de semana (hasta 5 de semana)
-    solved = solveExact40(top20, 4, 5, 0, 4, 700000);
-    if (solved) {
-      lastSolution = { ...solved, mode: 'exception' };
-      renderResult(lastSolution);
-      return;
-    }
-
-    // 3° intento: usar todo el pool ordenado (feriados -> findes -> lun-jue) con hasta 5 de semana
-    solved = solveExact40(orderedDays, 4, 5, 0, 3, 800000);
-    if (solved) {
-      lastSolution = { ...solved, mode: 'exception' };
-      renderResult(lastSolution);
-      return;
-    }
-
-    // 4° intento: respaldo constructivo garantizado de 40 turnos (8 por residente) respetando prioridad y 48 hs
-    solved = buildGuaranteed40(orderedDays);
-    lastSolution = { ...solved, mode: 'exception' };
-    renderResult(lastSolution);
-  }
-
-  function canRest48Hours(resState, slot) {
-    for (const prev of resState.assignedSlots) {
-      if (slot.startHr >= prev.endHr && (slot.startHr - prev.endHr) < 48) return false;
-      if (prev.startHr >= slot.endHr && (prev.startHr - slot.endHr) < 48) return false;
-      if (slot.startHr < prev.endHr && prev.startHr < slot.endHr) return false;
-    }
-    return true;
-  }
-
-  function solveExact40(daysPool, maxWknd, maxWkday, minWknd, minWkday, maxIter) {
-    const chronoDays = [...daysPool].sort((a, b) => a.idx - b.idx);
+    const top20 = pickTop20Days(indexedDays).sort((a, b) => a.idx - b.idx);
 
     const slots = [];
-    chronoDays.forEach(d => {
+    top20.forEach(d => {
       const isWknd = d.isWeekend || d.isHoliday;
-      slots.push({ day: d, type: 'DAY', isWknd, startHr: d.idx * 24 + 8, endHr: d.idx * 24 + 20 });
-      slots.push({ day: d, type: 'NIGHT', isWknd, startHr: d.idx * 24 + 20, endHr: (d.idx + 1) * 24 + 8 });
-    });
-
-    const TOTAL_NEEDED = 40;
-    const state = residents.map((r, i) => ({
-      id: i,
-      wkndCount: 0,
-      wkdayCount: 0,
-      dayShiftCount: 0,
-      nightShiftCount: 0,
-      assignedSlots: []
-    }));
-
-    let iterations = 0;
-
-    function backtrack(slotIdx, assignedCount) {
-      if (iterations++ > maxIter) return false;
-      if (assignedCount === TOTAL_NEEDED) {
-        return state.every(st => {
-          const total = st.wkndCount + st.wkdayCount;
-          return total === 8 && st.wkndCount >= minWknd && st.wkdayCount >= minWkday;
-        });
-      }
-      if (slotIdx === slots.length) return false;
-
-      const slot = slots[slotIdx];
-      const remainingSlots = slots.length - slotIdx;
-      const remainingNeeded = TOTAL_NEEDED - assignedCount;
-
-      const candidates = [...state].sort((a, b) => {
-        if (slot.isWknd) {
-          const needWkndA = a.wkndCount < minWknd ? 0 : 1;
-          const needWkndB = b.wkndCount < minWknd ? 0 : 1;
-          if (needWkndA !== needWkndB) return needWkndA - needWkndB;
-          if (a.wkndCount !== b.wkndCount) return a.wkndCount - b.wkndCount;
-        } else {
-          const needWkdayA = a.wkdayCount < minWkday ? 0 : 1;
-          const needWkdayB = b.wkdayCount < minWkday ? 0 : 1;
-          if (needWkdayA !== needWkdayB) return needWkdayA - needWkdayB;
-          if (a.wkdayCount !== b.wkdayCount) return a.wkdayCount - b.wkdayCount;
-        }
-        return (a.wkndCount + a.wkdayCount) - (b.wkndCount + b.wkdayCount);
-      });
-
-      for (const resState of candidates) {
-        const resData = residents[resState.id];
-        if (resState.wkndCount + resState.wkdayCount >= 8) continue;
-        if (slot.isWknd && resState.wkndCount >= maxWknd) continue;
-        if (!slot.isWknd && resState.wkdayCount >= maxWkday) continue;
-        if (resData.blocks[slot.day.dateStr]) continue;
-        if (!canRest48Hours(resState, slot)) continue;
-
-        if (slot.isWknd) resState.wkndCount++; else resState.wkdayCount++;
-        if (slot.type === 'DAY') resState.dayShiftCount++; else resState.nightShiftCount++;
-        resState.assignedSlots.push(slot);
-
-        if (backtrack(slotIdx + 1, assignedCount + 1)) return true;
-
-        resState.assignedSlots.pop();
-        if (slot.isWknd) resState.wkndCount--; else resState.wkdayCount--;
-        if (slot.type === 'DAY') resState.dayShiftCount--; else resState.nightShiftCount--;
-      }
-
-      if (remainingSlots > remainingNeeded) {
-        if (backtrack(slotIdx + 1, assignedCount)) return true;
-      }
-
-      return false;
-    }
-
-    if (backtrack(0, 0)) {
-      const mapByDate = {};
-      state.forEach(st => {
-        st.assignedSlots.forEach(s => {
-          if (!mapByDate[s.day.dateStr]) mapByDate[s.day.dateStr] = {};
-          mapByDate[s.day.dateStr][s.type] = residents[st.id];
-        });
-      });
-      return { mapByDate, stats: state };
-    }
-    return null;
-  }
-
-  function buildGuaranteed40(orderedDays) {
-    const selectedDays = orderedDays.slice(0, 20).sort((a, b) => a.idx - b.idx);
-    const slots = [];
-    selectedDays.forEach(d => {
-      const isWknd = d.isWeekend || d.isHoliday;
-      slots.push({ day: d, type: 'DAY', isWknd, startHr: d.idx * 24 + 8, endHr: d.idx * 24 + 20 });
-      slots.push({ day: d, type: 'NIGHT', isWknd, startHr: d.idx * 24 + 20, endHr: (d.idx + 1) * 24 + 8 });
+      const proposers = residents.filter(r => (r.proposedDays || []).includes(d.dateStr));
+      slots.push({ day: d, type: 'DAY', isWknd, proposers, startHr: d.idx * 24 + 8, endHr: d.idx * 24 + 20 });
+      slots.push({ day: d, type: 'NIGHT', isWknd, proposers, startHr: d.idx * 24 + 20, endHr: (d.idx + 1) * 24 + 8 });
     });
 
     const state = residents.map((r, i) => ({
@@ -877,21 +797,79 @@
       wkdayCount: 0,
       dayShiftCount: 0,
       nightShiftCount: 0,
+      ownProposedCount: 0,
       assignedSlots: []
     }));
 
-    const mapByDate = {};
+    // Paso 1: cada residente toma hasta 4 turnos de 12 h en sus días propuestos (respetando bloqueos y 48 h)
     slots.forEach(slot => {
+      if (slot.type !== 'DAY') return;
+      const daySlots = slots.filter(s => s.day.dateStr === slot.day.dateStr);
+      const dSlot = daySlots.find(s => s.type === 'DAY');
+      const nSlot = daySlots.find(s => s.type === 'NIGHT');
+
+      // Si el día fue propuesto por algún residente, asignar al menos 1 turno de 12 h a quien lo propuso
+      if (slot.proposers.length > 0) {
+        const candidates = slot.proposers
+          .map(r => state[residents.findIndex(x => x.name === r.name)])
+          .filter(st => st && (st.wkndCount + st.wkdayCount) < 8 && st.ownProposedCount < 4)
+          .sort((a, b) => a.ownProposedCount - b.ownProposedCount || (a.wkndCount + a.wkdayCount) - (b.wkndCount + b.wkdayCount));
+
+        for (const st of candidates) {
+          const r = residents[st.id];
+          if (r.blocks[dSlot.day.dateStr]) continue;
+          if (canRest48Hours(st, dSlot)) {
+            st.ownProposedCount++;
+            if (dSlot.isWknd) st.wkndCount++; else st.wkdayCount++;
+            st.dayShiftCount++;
+            st.assignedSlots.push(dSlot);
+            dSlot.assigned = r;
+            break;
+          }
+        }
+
+        // El otro turno de 12 h del mismo día puede ir a otro proponente o combinarse con otro residente
+        const secondCandidates = [...state]
+          .filter(st => !nSlot.assigned && (st.wkndCount + st.wkdayCount) < 8)
+          .sort((a, b) => {
+            const aProp = slot.proposers.some(p => p.name === residents[a.id].name) ? 0 : 1;
+            const bProp = slot.proposers.some(p => p.name === residents[b.id].name) ? 0 : 1;
+            if (aProp !== bProp) return aProp - bProp;
+            return (a.wkndCount + a.wkdayCount) - (b.wkndCount + b.wkdayCount);
+          });
+
+        for (const st of secondCandidates) {
+          const r = residents[st.id];
+          if (r.blocks[nSlot.day.dateStr]) continue;
+          if (canRest48Hours(st, nSlot)) {
+            if (slot.proposers.some(p => p.name === r.name) && st.ownProposedCount < 4) {
+              st.ownProposedCount++;
+            }
+            if (nSlot.isWknd) st.wkndCount++; else st.wkdayCount++;
+            st.nightShiftCount++;
+            st.assignedSlots.push(nSlot);
+            nSlot.assigned = r;
+            break;
+          }
+        }
+      }
+    });
+
+    // Paso 2: completar todos los turnos restantes hasta 8 turnos de 12 h por residente
+    slots.forEach(slot => {
+      if (slot.assigned) return;
+
       const candidates = [...state]
         .filter(st => (st.wkndCount + st.wkdayCount) < 8)
         .sort((a, b) => {
           const totA = a.wkndCount + a.wkdayCount;
           const totB = b.wkndCount + b.wkdayCount;
           if (totA !== totB) return totA - totB;
-          return slot.isWknd ? (a.wkndCount - b.wkndCount) : (a.wkdayCount - b.wkdayCount);
+          if (slot.isWknd) return a.wkndCount - b.wkndCount;
+          return a.wkdayCount - b.wkdayCount;
         });
 
-      let chosen =
+      const chosen =
         candidates.find(st => {
           const r = residents[st.id];
           return !r.blocks[slot.day.dateStr] && canRest48Hours(st, slot);
@@ -903,15 +881,22 @@
         candidates[0];
 
       if (chosen) {
+        const r = residents[chosen.id];
         if (slot.isWknd) chosen.wkndCount++; else chosen.wkdayCount++;
         if (slot.type === 'DAY') chosen.dayShiftCount++; else chosen.nightShiftCount++;
         chosen.assignedSlots.push(slot);
-        if (!mapByDate[slot.day.dateStr]) mapByDate[slot.day.dateStr] = {};
-        mapByDate[slot.day.dateStr][slot.type] = residents[chosen.id];
+        slot.assigned = r;
       }
     });
 
-    return { mapByDate, stats: state };
+    const mapByDate = {};
+    slots.forEach(s => {
+      if (!mapByDate[s.day.dateStr]) mapByDate[s.day.dateStr] = {};
+      if (s.assigned) mapByDate[s.day.dateStr][s.type] = s.assigned;
+    });
+
+    lastSolution = { mapByDate, stats: state, mode: 'ideal' };
+    renderResult(lastSolution);
   }
 
   function renderResult(solution) {
@@ -926,18 +911,14 @@
 
     if (!solution) {
       dlBtn.disabled = true;
-      feedback.innerHTML = `<div class="alert alert-error">
-        ⚠️ No se pudo armar una combinación válida con las restricciones actuales.
-      </div>`;
+      feedback.innerHTML = `<div class="alert alert-error">⚠️ No se pudo generar el esquema.</div>`;
       calOut.innerHTML = '';
       sumOut.innerHTML = '';
       return;
     }
 
     dlBtn.disabled = false;
-    feedback.innerHTML = solution.mode === 'ideal'
-      ? `<div class="alert alert-success">✅ Esquema óptimo (1.º año): 20 días cubiertos con prioridad feriados → finde → semana (sin viernes), descanso ≥ 48 hs y 8 turnos de 12 hs por residente.</div>`
-      : `<div class="alert alert-warn">⚠️ Esquema ajustado (1.º año): 20 días cubiertos con prioridad feriados → finde → semana (sin viernes) y 8 turnos de 12 hs por residente.</div>`;
+    feedback.innerHTML = `<div class="alert alert-success">✅ Esquema calculado (1.º año): 20 días cubiertos priorizando feriados → findes → días propuestos/semana (viernes de 2.º año) y 8 turnos de 12 hs por residente.</div>`;
 
     let html = '<div class="calendar-grid">';
     ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].forEach(h => {
@@ -949,13 +930,15 @@
 
     periodDays.forEach(day => {
       const assigned = solution.mapByDate[day.dateStr];
-      const tag = day.isHoliday ? 'FERIADO' : (day.isWeekend ? 'FINDE' : '');
+      const badgeHtml = day.isHoliday
+        ? `<span class="badge holiday-badge">FERIADO</span>`
+        : (day.isWeekend ? `<span class="badge">FINDE</span>` : '');
 
-      if (day.isFriday && !assigned) {
+      if (day.isFriday && !(assigned && assigned.DAY && assigned.NIGHT)) {
         html += `<div class="cal-cell friday-second">
           <div class="cal-top">
             <span class="cal-date">${day.label}</span>
-            <span class="badge" style="background:#64748b;">2.º AÑO</span>
+            ${day.isHoliday ? `<span class="badge holiday-badge">FERIADO</span>` : `<span class="badge" style="background:#64748b;">2.º AÑO</span>`}
           </div>
           <div style="font-size:0.75rem; text-align:center; margin-bottom:12px;">Viernes (2.º año)</div>
         </div>`;
@@ -973,7 +956,7 @@
         html += `<div class="cal-cell" style="background: ${grad};">
           <div class="cal-top">
             <span class="cal-date">${day.label}</span>
-            ${tag ? `<span class="badge">${tag}</span>` : ''}
+            ${badgeHtml}
           </div>
           <div style="text-align:center;">
             <span class="shared-pill">${samePerson ? '1 RESIDENTE (12h)' : '2 RESIDENTES EN EL DÍA'}</span>
@@ -987,7 +970,7 @@
         html += `<div class="cal-cell uncovered">
           <div class="cal-top">
             <span class="cal-date">${day.label}</span>
-            ${tag ? `<span class="badge" style="background:#94a3b8;">${tag}</span>` : ''}
+            ${badgeHtml}
           </div>
           <div style="font-size:0.75rem; text-align:center; margin-bottom:12px;">Sin guardia (1.º)</div>
         </div>`;
@@ -998,14 +981,19 @@
     calOut.innerHTML = html;
 
     let tbl = `<table><thead><tr>
-      <th>Residente (1.º año)</th><th>Semana (12h)</th><th>Fin de Semana / Feriado (12h)</th>
+      <th>Residente</th><th>Días Propuestos</th><th>Semana (12h)</th><th>Fin de Semana / Feriado (12h)</th>
       <th>Diurnas</th><th>Nocturnas</th><th>Total Horas</th>
     </tr></thead><tbody>`;
 
     solution.stats.forEach(st => {
       const r = residents[st.id];
+      const propLabels = (r.proposedDays || []).map(ds => {
+        const d = periodDays.find(x => x.dateStr === ds);
+        return d ? d.label : ds;
+      });
       tbl += `<tr>
         <td><span class="color-dot" style="background:${r.color}"></span><strong>${r.name}</strong></td>
+        <td>${propLabels.length ? propLabels.join(', ') : '-'}</td>
         <td>${st.wkdayCount}</td>
         <td>${st.wkndCount}</td>
         <td>${st.dayShiftCount}</td>
@@ -1143,11 +1131,14 @@
 
           if (day.isHoliday || day.isWeekend) {
             const badgeTxt = day.isHoliday ? 'FERIADO' : 'FINDE';
-            const bw = ctx.measureText(badgeTxt).width + 12;
-            drawRoundRect(ctx, x + cellW - bw - 8, y + 8, bw, 20, 9, 'rgba(15,23,42,0.78)', null);
-            ctx.fillStyle = '#ffffff';
+            const badgeBg = day.isHoliday ? '#dc2626' : 'rgba(15,23,42,0.82)';
             ctx.font = '700 10px system-ui, -apple-system, sans-serif';
-            ctx.fillText(badgeTxt, x + cellW - bw - 2, y + 21);
+            const bw = ctx.measureText(badgeTxt).width + 14;
+            drawRoundRect(ctx, x + cellW - bw - 8, y + 8, bw, 20, 9, badgeBg, null);
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.fillText(badgeTxt, x + cellW - bw / 2 - 8, y + 21);
+            ctx.textAlign = 'left';
           }
 
           drawRoundRect(ctx, x + 8, y + 40, cellW - 16, cellH - 50, 8, 'rgba(255,255,255,0.92)', null);
@@ -1160,23 +1151,30 @@
           ctx.font = '600 11px system-ui, -apple-system, sans-serif';
           ctx.fillText(`08–20: ${dRes.name} · 20–08: ${nRes.name}`, x + cellW / 2, y + 88);
           ctx.textAlign = 'left';
-        } else if (day.isFriday) {
-          drawRoundRect(ctx, x, y, cellW, cellH, 12, '#e2e8f0', '#cbd5e1');
-          ctx.fillStyle = '#64748b';
-          ctx.font = '700 14px system-ui, -apple-system, sans-serif';
-          ctx.fillText(day.label, x + 10, y + 22);
-          ctx.font = '600 12px system-ui, -apple-system, sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText('Viernes (2.º año)', x + cellW / 2, y + cellH / 2 + 6);
-          ctx.textAlign = 'left';
         } else {
-          drawRoundRect(ctx, x, y, cellW, cellH, 12, '#f1f5f9', '#cbd5e1');
-          ctx.fillStyle = '#64748b';
-          ctx.font = '700 14px system-ui, -apple-system, sans-serif';
+          const bg = day.isHoliday ? '#fee2e2' : (day.isFriday ? '#e2e8f0' : '#f1f5f9');
+          const border = day.isHoliday ? '#ef4444' : '#cbd5e1';
+          drawRoundRect(ctx, x, y, cellW, cellH, 12, bg, border);
+
+          ctx.fillStyle = day.isHoliday ? '#991b1b' : '#64748b';
+          ctx.font = '800 14px system-ui, -apple-system, sans-serif';
           ctx.fillText(day.label, x + 10, y + 22);
+
+          if (day.isHoliday) {
+            const badgeTxt = 'FERIADO';
+            ctx.font = '700 10px system-ui, -apple-system, sans-serif';
+            const bw = ctx.measureText(badgeTxt).width + 14;
+            drawRoundRect(ctx, x + cellW - bw - 8, y + 8, bw, 20, 9, '#dc2626', null);
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.fillText(badgeTxt, x + cellW - bw / 2 - 8, y + 21);
+            ctx.textAlign = 'left';
+          }
+
+          ctx.fillStyle = day.isHoliday ? '#991b1b' : '#64748b';
           ctx.font = '600 12px system-ui, -apple-system, sans-serif';
           ctx.textAlign = 'center';
-          ctx.fillText('Sin guardia (1.º)', x + cellW / 2, y + cellH / 2 + 6);
+          ctx.fillText(day.isFriday ? 'Viernes (2.º año)' : 'Sin guardia (1.º)', x + cellW / 2, y + cellH / 2 + 6);
           ctx.textAlign = 'left';
         }
       });
